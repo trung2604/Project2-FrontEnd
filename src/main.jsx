@@ -14,6 +14,8 @@ import UsersPage from './pages/UsersPage';
 import './styles/global.css';
 import Body from './components/body';
 import ErrorPage from './pages/ErrorPage';
+import { AuthWrapper } from './components/context/auth-context';
+import PrivateRoute from './pages/private-route';
 const Router = createBrowserRouter([
   {
     path: '/',
@@ -26,11 +28,19 @@ const Router = createBrowserRouter([
       },
       {
         path: '/users',
-        element: <UsersPage />,
+        element: (
+          <PrivateRoute>
+            <UsersPage />
+          </PrivateRoute>
+        ),
       },
       {
         path: '/books',
-        element: <BookPage />,
+        element: (
+          <PrivateRoute>
+            <BookPage />
+          </PrivateRoute>
+        ),
       }
     ],
   },
@@ -42,11 +52,11 @@ const Router = createBrowserRouter([
     path: '/register',
     element: <RegisterPage />,
   }
-  
+
 ])
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
+  <AuthWrapper>
     <RouterProvider router={Router} />
-  </StrictMode>,
+  </AuthWrapper>
 )

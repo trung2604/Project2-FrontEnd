@@ -6,9 +6,12 @@ const axiosInstance = axios.create({
         "Content-Type": "application/json"
     }
 })
+
 // Add a request interceptor
-axios.interceptors.request.use(function (config) {
-    // Do something before request is sent
+axiosInstance.interceptors.request.use(function (config) {
+    if(typeof window !== 'undefined' && window && window.localStorage && window.localStorage.getItem('access_token')){
+      config.headers.Authorization = 'Bearer ' + window.localStorage.getItem('access_token');
+    }
     return config;
   }, function (error) {
     // Do something with request error

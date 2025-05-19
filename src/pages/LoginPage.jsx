@@ -3,10 +3,12 @@ import { LoginOutlined, UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
 import "../components/user/user-form.css";
 import { loginAPI } from "../services/api-service";
+import { useContext } from "react";
+import { AuthContext } from "../components/context/auth-context";
 const LoginPage = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
-
+  const { setUser } = useContext(AuthContext);
   const onFinish = async (values) => {
     try {
       const response = await loginAPI(
@@ -19,6 +21,8 @@ const LoginPage = () => {
           message: "Login",
           description: "Login successfully"
         });
+        localStorage.setItem("access_token", response.data.token);
+        setUser(response.data.user);
         navigate("/");
       } else {
         notification.error({
@@ -72,7 +76,11 @@ const LoginPage = () => {
               name="password"
               rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
             >
-              <Input.Password placeholder="Nhập mật khẩu" prefix={<LockOutlined />} />
+              <Input.Password onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  onFinish();
+                }
+              }} placeholder="Nhập mật khẩu" prefix={<LockOutlined />} />
             </Form.Item>
           </Col>
         </Row>

@@ -1,32 +1,236 @@
-ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: #333;
+/* Header.css */
+.header {
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+  padding: 0 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 64px;
+  line-height: 64px;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  height: 100%;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo-icon {
+  font-size: 28px;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.logo:hover .logo-icon {
+  transform: rotate(10deg);
+}
+
+.logo-text {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 600;
+  margin-left: 10px;
+  letter-spacing: 0.5px;
+}
+
+.menu {
+  flex: 1;
+  margin: 0 24px;
+  background: transparent;
+  border: none;
+  line-height: 64px;
+}
+
+.menu .ant-menu-item {
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.menu .ant-menu-item:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+.menu .ant-menu-item-selected {
+  background: rgba(255, 255, 255, 0.2) !important;
+  font-weight: 600;
+}
+
+.menu .ant-menu-item .anticon {
+  font-size: 18px;
+  margin-right: 6px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.search-input {
+  width: 240px;
+}
+
+.search-input .ant-input {
+  border-radius: 20px 0 0 20px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  height: 36px;
+  padding: 0 16px;
+  transition: all 0.3s ease;
+}
+
+.search-input .ant-input:hover,
+.search-input .ant-input:focus {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.search-input .ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.search-input .ant-input-search-button {
+  border-radius: 0 20px 20px 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  height: 36px;
+  width: 40px;
+  transition: all 0.3s ease;
+}
+
+.search-input .ant-input-search-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.header-icon {
+  color: #fff;
+  font-size: 22px;
+  transition: all 0.3s ease;
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.header-icon:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.user-dropdown {
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.user-dropdown:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.user-text {
+  color: #fff;
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+.ant-dropdown-menu {
+  border-radius: 8px;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08);
+}
+
+.ant-dropdown-menu-item {
+  padding: 8px 16px;
+}
+
+.ant-dropdown-menu-item:hover {
+  background: #f5f5f5;
+}
+
+@media (max-width: 1200px) {
+  .search-input {
+    width: 200px;
   }
-  
-  li {
-    float: left;
-    border-right:1px solid #bbb;
+}
+
+@media (max-width: 992px) {
+  .header-container {
+    padding: 0 16px;
   }
-  
-  li:last-child {
-    border-right: none;
+
+  .menu {
+    margin: 0 16px;
   }
-  
-  li a {
-    display: block;
-    color: white;
-    text-align: center;
-    padding: 14px 16px;
-    text-decoration: none;
+
+  .search-input {
+    width: 180px;
   }
-  
-  li a:hover:not(.active) {
-    background-color: #111;
+
+  .user-text {
+    display: none;
   }
-  
-  .active {
-    background-color: #04AA6D;
+}
+
+@media (max-width: 768px) {
+  .header {
+    height: auto;
+    padding: 8px 16px;
   }
+
+  .header-container {
+    flex-wrap: wrap;
+    height: auto;
+    line-height: normal;
+  }
+
+  .logo {
+    margin-bottom: 8px;
+  }
+
+  .menu {
+    order: 3;
+    width: 100%;
+    margin: 8px 0 0 0;
+  }
+
+  .header-right {
+    margin-left: auto;
+  }
+
+  .search-input {
+    width: 160px;
+  }
+}
+
+@media (max-width: 576px) {
+  .header-right {
+    gap: 12px;
+  }
+
+  .search-input {
+    width: 140px;
+  }
+
+  .header-icon {
+    font-size: 20px;
+    padding: 6px;
+  }
+}

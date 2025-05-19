@@ -56,5 +56,5 @@ Mọi đóng góp, pull request hoặc issue đều được hoan nghênh!
 MIT
 
 ---
-> **Book Store FrontEnd** - Project2 - 2024  
+> **Book Store FrontEnd** - Project2 - 2025  
 > Tác giả: [trung2604](https://github.com/trung2604)

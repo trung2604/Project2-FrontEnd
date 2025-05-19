@@ -10,7 +10,14 @@ const UserForm = ({ isModalOpen, setIsModalOpen, userData, loadUser }) => {
 
     // Reset form when modal opens/closes
     const handleModalClose = () => {
-        form.resetFields();
+        form.setFieldsValue({
+            fullName: '',
+            email: '',
+            password: '',
+            phone: '',
+            role: 'USER',
+            active: true
+        });
         setIsModalOpen(false);
     };
 

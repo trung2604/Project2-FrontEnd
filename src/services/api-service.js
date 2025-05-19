@@ -59,4 +59,13 @@ const loginAPI = (email, password) => {
     });
 }
 
-export { createUserAPI, getAllUserAPI, updateUserAPI, deleteUserAPI, updateAvatarAPI, registerAPI, loginAPI };
+const getAccountAPI = () => {
+        const URL_BACKEND = "/api/bookStore/user/account";
+        return axios.get(URL_BACKEND);
+}
+
+const logoutAPI = () => {
+    const URL_BACKEND = "/api/bookStore/user/logout";
+    return axios.post(URL_BACKEND);
+}
+export { createUserAPI, getAllUserAPI, updateUserAPI, deleteUserAPI, updateAvatarAPI, registerAPI, loginAPI, getAccountAPI, logoutAPI };
