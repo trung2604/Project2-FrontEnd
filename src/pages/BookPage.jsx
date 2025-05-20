@@ -1,6 +1,6 @@
-const BookPage = () => {
-  return <div>BookPage</div>;
-};
+import BookList from '../components/book/BookList';
+
+const BookPage = () => <BookList />;
 
 export default BookPage;
 

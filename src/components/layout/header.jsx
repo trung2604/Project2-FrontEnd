@@ -1,5 +1,5 @@
-import React, { useContext, useState } from 'react';
-import { Layout, Menu, Input, Button, Badge, Avatar, Dropdown, Space, Typography, message, Modal } from 'antd';
+import React, { useContext, useEffect, useState } from 'react';
+import { Layout, Menu, Input, Button, Badge, Avatar, Space, Typography, message, Modal, Dropdown } from 'antd';
 import {
   SearchOutlined,
   ShoppingCartOutlined,
@@ -14,7 +14,10 @@ import {
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import './Header.css';
 import { AuthContext } from '../context/auth-context';
-import { logoutAPI } from '../../services/api-service';
+import { getAllBookAPI, getAllUserAPI, logoutAPI, getAccountAPI } from '../../services/api-service';
+import ViewUserDetails from '../user/view-user-details';
+import AvatarCustom from '../common/Avatar';
+import { useCart } from '../context/cart-context.jsx';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -22,11 +25,25 @@ const { confirm } = Modal;
 
 const Header = () => {
   const [searchText, setSearchText] = useState('');
-  const [current, setCurrent] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [current, setCurrent] = useState('');
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, setUser, setIsLoading } = useContext(AuthContext);
+  const { user, setUser } = useContext(AuthContext);
+  const [dataDetails, setDataDetails] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const { getCartCount, cart, fetchCart } = useCart();
+  const [cartCount, setCartCount] = useState(0);
+
+  // Theo dõi thay đổi của giỏ hàng và cập nhật số lượng
+  useEffect(() => {
+    if (user?.id) {
+      const count = getCartCount();
+      setCartCount(count);
+    } else {
+      setCartCount(0);
+    }
+  }, [cart, user?.id]);
+
 
   const handleSearch = (value) => {
     if (value.trim()) {
@@ -54,7 +71,6 @@ const Header = () => {
     try {
       setIsLoggingOut(true);
       const response = await logoutAPI();
-      console.log("Check data", response);
       if (response.status === 200) {
         localStorage.removeItem('access_token');
         setUser({
@@ -78,72 +94,75 @@ const Header = () => {
     }
   };
 
-  const userMenuItems = [
-    {
-      key: 'profile',
-      icon: <UserOutlined />,
-      label: <Link to="/profile">Hồ sơ</Link>
-    },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: <span onClick={showLogoutConfirm}>Đăng xuất</span>,
-      danger: true
+  // Hàm reload lại user hiện tại
+  const reloadCurrentUser = async () => {
+    const res = await getAccountAPI();
+    if (res && res.data) {
+      setUser(res.data);
     }
-  ];
+  };
 
-  const menuItems = [
-    {
-      label: <Link to="/">Trang chủ</Link>,
-      key: 'home',
-      icon: <HomeOutlined />,
-    },
-    ...(user?.role === 'ADMIN' ? [
+  // Menu items chính
+  const getMenuItems = () => {
+    const items = [
       {
-        label: <Link to="/users">Quản lý người dùng</Link>,
+        key: 'home',
+        icon: <HomeOutlined />,
+        label: <Link to="/">Trang chủ</Link>
+      }
+    ];
+
+    if (user?.role === 'ROLE_ADMIN') {
+      items.push({
         key: 'users',
         icon: <UserOutlined />,
-      }
-    ] : []),
-    {
-      label: <Link to="/books">Sách</Link>,
+        label: <Link to="/users">Quản lý người dùng</Link>
+      });
+    }
+
+    items.push({
       key: 'books',
       icon: <BookOutlined />,
-    },
-    ...(!user?.id ? [
+      label: <Link to="/books">Sách</Link>
+    });
+
+    if (!user?.id) {
+      items.push(
+        {
+          key: 'login',
+          icon: <LoginOutlined />,
+          label: <NavLink to="/login">Đăng nhập</NavLink>
+        },
+        {
+          key: 'register',
+          icon: <UserAddOutlined />,
+          label: <NavLink to="/register">Đăng ký</NavLink>
+        }
+      );
+    }
+
+    return items;
+  };
+
+  // Dropdown menu cho user
+  const userDropdownMenu = {
+    items: [
       {
-        label: <NavLink to="/login">Đăng nhập</NavLink>,
-        key: 'login',
-        icon: <LoginOutlined />,
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: <span onClick={() => {
+          setIsDetailsOpen(true);
+          setDataDetails(user);
+        }}>Hồ sơ</span>
       },
       {
-        label: <NavLink to="/register">Đăng ký</NavLink>,
-        key: 'register',
-        icon: <UserAddOutlined />,
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: <span onClick={showLogoutConfirm}>Đăng xuất</span>,
+        danger: true
       }
-    ] : []),
-    ...(user?.id ? [
-      {
-        label: (
-          <Dropdown
-            menu={{ items: userMenuItems }}
-            placement="bottomRight"
-            trigger={['click']}
-          >
-            <Space className="user-dropdown">
-              <Avatar
-                src={user.avatar}
-                icon={<UserOutlined />}
-                className="user-avatar"
-              />
-              <Text className="user-text">{user.fullName}</Text>
-            </Space>
-          </Dropdown>
-        ),
-        key: 'user-menu',
-      }
-    ] : [])
-  ];
+    ]
+  };
 
   return (
     <AntHeader className="header">
@@ -163,9 +182,8 @@ const Header = () => {
           className="menu"
           selectedKeys={[current]}
           onClick={onClick}
-          items={menuItems}
+          items={getMenuItems()}
         />
-
         <div className="header-right">
           <Input.Search
             placeholder="Tìm kiếm sách..."
@@ -175,8 +193,8 @@ const Header = () => {
             className="search-input"
             allowClear
           />
-          {user?.id && (
-            <Badge count={0} showZero>
+          {user?.id && user.role === 'ROLE_USER' && (
+            <Badge count={cartCount} showZero>
               <Button
                 type="text"
                 icon={<ShoppingCartOutlined />}
@@ -185,8 +203,33 @@ const Header = () => {
               />
             </Badge>
           )}
+          {user?.id && (
+            <Dropdown
+              menu={userDropdownMenu}
+              placement="bottomRight"
+              trigger={['click']}
+            >
+              <div className="user-header-info">
+                <AvatarCustom
+                  avatar={user.avatar}
+                  size="small"
+                  alt={user.fullName}
+                  className="user-header-avatar"
+                />
+                <span className="user-header-name">{user.fullName}</span>
+              </div>
+            </Dropdown>
+          )}
         </div>
       </div>
+      <ViewUserDetails
+        isDetailsOpen={isDetailsOpen}
+        setIsDetailsOpen={setIsDetailsOpen}
+        dataDetails={dataDetails}
+        setDataDetails={setDataDetails}
+        loadUser={() => { }}
+        reloadCurrentUser={reloadCurrentUser}
+      />
     </AntHeader>
   );
 };

@@ -1,0 +1,112 @@
+.book-card-image {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 16px;
+  max-width: 180px;
+  max-height: 180px;
+  margin: 0 auto 16px auto;
+  display: block;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.10), 0 1.5px 6px rgba(0,0,0,0.04);
+  background: #f5f5f5;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+
+.book-card {
+  border-radius: 16px !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s, transform 0.2s;
+  overflow: hidden;
+  background: #fff;
+}
+
+.book-card:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.16);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.book-card .ant-card-meta-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: #222;
+}
+
+.book-card .ant-card-meta-description {
+  color: #666;
+  font-size: 15px;
+}
+
+.book-card .ant-btn {
+  border-radius: 8px;
+  font-weight: 500;
+  min-width: 80px;
+}
+
+/* Nút Thêm vào giỏ */
+.book-card .ant-btn-primary {
+  background: linear-gradient(90deg, #36d1c4 0%, #5b86e5 100%);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(91, 134, 229, 0.08);
+}
+
+.book-card .ant-btn-primary:hover,
+.book-card .ant-btn-primary:focus {
+  background: linear-gradient(90deg, #5b86e5 0%, #36d1c4 100%);
+  box-shadow: 0 4px 16px rgba(91, 134, 229, 0.15);
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* Nút Mua ngay */
+.book-card .ant-btn-dangerous.ant-btn-primary {
+  background: linear-gradient(90deg, #ff5858 0%, #f09819 100%);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(255, 88, 88, 0.08);
+}
+
+.book-card .ant-btn-dangerous.ant-btn-primary:hover,
+.book-card .ant-btn-dangerous.ant-btn-primary:focus {
+  background: linear-gradient(90deg, #f09819 0%, #ff5858 100%);
+  box-shadow: 0 4px 16px rgba(255, 88, 88, 0.15);
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* Căn chỉnh khoảng cách giữa 2 nút */
+.book-card .ant-space-vertical {
+  gap: 10px !important;
+}
+
+.book-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f4f6fa;
+  padding: 12px 0;
+  border-radius: 12px;
+}
+
+/* Nền trang BookList */
+.book-list-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f7faff 0%, #e3e9f7 100%);
+  padding-bottom: 48px;
+}
+
+@media (max-width: 600px) {
+  .book-card-image {
+    max-width: 120px;
+    max-height: 120px;
+    margin-bottom: 10px;
+  }
+  .book-card {
+    min-height: 270px;
+    padding: 10px 4px 8px 4px;
+  }
+} 

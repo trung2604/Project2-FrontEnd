@@ -116,7 +116,7 @@ const UserForm = ({ isModalOpen, setIsModalOpen, userData, loadUser }) => {
                     layout="vertical"
                     onFinish={onFinish}
                     initialValues={{
-                        role: "USER",
+                        role: "ROLE_USER",
                         active: true
                     }}
                     className="user-form"
@@ -174,7 +174,7 @@ const UserForm = ({ isModalOpen, setIsModalOpen, userData, loadUser }) => {
                     >
                         <Select placeholder="Select role">
                             <Option value="USER">User</Option>
-                            <Option value="ADMIN">Admin</Option>
+                            <Option value="ROLE_ADMIN">ROLE_ADMIN</Option>
                         </Select>
                     </Form.Item>
 

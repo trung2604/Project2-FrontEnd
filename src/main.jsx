@@ -15,11 +15,22 @@ import './styles/global.css';
 import Body from './components/body';
 import ErrorPage from './pages/ErrorPage';
 import { AuthWrapper } from './components/context/auth-context';
+import { CartProvider } from './components/context/cart-context.jsx';
 import PrivateRoute from './pages/private-route';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+
+// Wrap App with CartProvider
+const AppWithCart = () => (
+  <CartProvider>
+    <App />
+  </CartProvider>
+);
+
 const Router = createBrowserRouter([
   {
     path: '/',
-    element: <App />,
+    element: <AppWithCart />,
     errorElement: <ErrorPage />,
     children: [
       {
@@ -41,7 +52,23 @@ const Router = createBrowserRouter([
             <BookPage />
           </PrivateRoute>
         ),
-      }
+      },
+      {
+        path: '/cart',
+        element: (
+          <PrivateRoute>
+            <CartPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/checkout',
+        element: (
+          <PrivateRoute>
+            <CheckoutPage />
+          </PrivateRoute>
+        ),
+      },
     ],
   },
   {
@@ -52,7 +79,6 @@ const Router = createBrowserRouter([
     path: '/register',
     element: <RegisterPage />,
   }
-
 ])
 
 createRoot(document.getElementById('root')).render(

@@ -1,19 +1,28 @@
 import { useContext } from "react";
 import { AuthContext } from "../components/context/auth-context";
 import { Navigate } from "react-router-dom";
+import { Spin } from "antd";
 
 const PrivateRoute = ({ children }) => {
-    const { user } = useContext(AuthContext);
-    if (user && user.id) {
+    const { user, isLoading } = useContext(AuthContext);
+
+    if (isLoading) {
         return (
-            <>
-                {children}
-            </>
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh'
+            }}>
+                <Spin size="large" />
+            </div>
         );
     }
-    return (
-        <Navigate to="/login" replace />
-    );
+
+    if (user && user.id) {
+        return children;
+    }
+    return <Navigate to="/login" replace />;
 }
 
 export default PrivateRoute;

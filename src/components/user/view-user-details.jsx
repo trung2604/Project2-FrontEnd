@@ -3,12 +3,26 @@ import './user-detail.css';
 import Avatar from '../common/Avatar';
 import { UploadOutlined, LoadingOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { updateAvatarAPI } from "../../services/api-service";
+import { updateAvatarAPI, getUserByIdAPI } from "../../services/api-service";
+import UpdateUser from './update-user';
 
-const ViewUserDetails = ({ isDetailsOpen, setIsDetailsOpen, dataDetails, setDataDetails, loadUser }) => {
+const ViewUserDetails = ({ isDetailsOpen, setIsDetailsOpen, dataDetails, setDataDetails, loadUser, reloadCurrentUser }) => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isModalUpdateOpen, setIsModalUpdateOpen] = useState(false);
+    const [dataUpdate, setDataUpdate] = useState(null);
+
+    // Hàm load lại user chi tiết
+    const loadUserDetail = async () => {
+        if (dataDetails && dataDetails.id) {
+            const res = await getUserByIdAPI(dataDetails.id);
+            if (res && res.data) {
+                setDataDetails(res.data);
+                if (reloadCurrentUser) reloadCurrentUser();
+            }
+        }
+    };
 
     const handleOnChangeFile = (e) => {
         if (!e.target.files[0] && e.target.files[0] === 0) {
@@ -29,9 +43,8 @@ const ViewUserDetails = ({ isDetailsOpen, setIsDetailsOpen, dataDetails, setData
         setIsUploading(true);
         try {
             const response = await updateAvatarAPI(selectedFile, dataDetails.id);
-
             if (response.statusCode === 200) {
-                setDataDetails();
+                setDataDetails({});
                 setPreview(null);
                 setSelectedFile(null);
                 setIsDetailsOpen(false);
@@ -39,7 +52,8 @@ const ViewUserDetails = ({ isDetailsOpen, setIsDetailsOpen, dataDetails, setData
                     message: "Update Avatar",
                     description: "Avatar updated successfully"
                 });
-                await loadUser();
+                await loadUserDetail();
+                return;
             } else {
                 notification.error({
                     message: "Update Avatar",
@@ -88,6 +102,16 @@ const ViewUserDetails = ({ isDetailsOpen, setIsDetailsOpen, dataDetails, setData
                                 className="user-detail-avatar"
                             />
                             <h2 className="user-detail-title">{dataDetails.fullName}</h2>
+                            <Button
+                                type="primary"
+                                className="edit-btn"
+                                onClick={() => {
+                                    setIsModalUpdateOpen(true);
+                                    setDataUpdate(dataDetails);
+                                }}
+                            >
+                                Chỉnh sửa
+                            </Button>
                         </div>
                         <div className="user-detail-content">
                             <div className="user-detail-item">
@@ -156,6 +180,13 @@ const ViewUserDetails = ({ isDetailsOpen, setIsDetailsOpen, dataDetails, setData
                                 </div>
                             )}
                         </div>
+                        <UpdateUser
+                            isModalUpdateOpen={isModalUpdateOpen}
+                            setIsModalUpdateOpen={setIsModalUpdateOpen}
+                            dataUpdate={dataUpdate}
+                            setDataUpdate={setDataUpdate}
+                            loadUser={loadUserDetail}
+                        />
                     </>
                 ) : (
                     <div className="no-data-message">No data available</div>
