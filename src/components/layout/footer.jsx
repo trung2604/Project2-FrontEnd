@@ -53,6 +53,7 @@ const Footer = () => {
             <ul className="footer-links">
               <li><Link to="/">Trang chủ</Link></li>
               <li><Link to="/books">Sách</Link></li>
+              <li><Link to="/categories">Danh mục</Link></li>
               <li><Link to="/about">Giới thiệu</Link></li>
             </ul>
           </Col>

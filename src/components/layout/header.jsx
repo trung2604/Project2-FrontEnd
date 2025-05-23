@@ -9,7 +9,9 @@ import {
   HomeOutlined,
   LoginOutlined,
   UserAddOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  AppstoreOutlined,
+  ShoppingOutlined
 } from '@ant-design/icons';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import './Header.css';
@@ -33,6 +35,7 @@ const Header = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { getCartCount, cart, fetchCart } = useCart();
   const [cartCount, setCartCount] = useState(0);
+  const location = useLocation();
 
   // Theo dõi thay đổi của giỏ hàng và cập nhật số lượng
   useEffect(() => {
@@ -108,35 +111,68 @@ const Header = () => {
       {
         key: 'home',
         icon: <HomeOutlined />,
-        label: <Link to="/">Trang chủ</Link>
+        label: 'Trang chủ',
+        onClick: () => navigate('/')
       }
     ];
 
     if (user?.role === 'ROLE_ADMIN') {
       items.push({
-        key: 'users',
-        icon: <UserOutlined />,
-        label: <Link to="/users">Quản lý người dùng</Link>
+        key: 'admin-management',
+        icon: <AppstoreOutlined />,
+        label: 'Quản lý',
+        children: [
+          {
+            key: 'users',
+            icon: <UserOutlined />,
+            label: 'Quản lý người dùng',
+            onClick: () => navigate('/users')
+          },
+          {
+            key: 'books',
+            icon: <BookOutlined />,
+            label: 'Quản lý sách',
+            onClick: () => navigate('/books')
+          },
+          {
+            key: 'categories',
+            icon: <AppstoreOutlined />,
+            label: 'Quản lý danh mục',
+            onClick: () => navigate('/categories')
+          }
+        ]
+      });
+    } else {
+      items.push({
+        key: 'books',
+        icon: <BookOutlined />,
+        label: 'Sách',
+        onClick: () => navigate('/books')
       });
     }
 
-    items.push({
-      key: 'books',
-      icon: <BookOutlined />,
-      label: <Link to="/books">Sách</Link>
-    });
+    if (user?.id) {
+      items.push({
+        key: 'orders',
+        icon: <ShoppingOutlined />,
+        label: 'Đơn hàng',
+        onClick: () => navigate('/orders')
+      });
+    }
 
     if (!user?.id) {
       items.push(
         {
           key: 'login',
           icon: <LoginOutlined />,
-          label: <NavLink to="/login">Đăng nhập</NavLink>
+          label: 'Đăng nhập',
+          onClick: () => navigate('/login')
         },
         {
           key: 'register',
           icon: <UserAddOutlined />,
-          label: <NavLink to="/register">Đăng ký</NavLink>
+          label: 'Đăng ký',
+          onClick: () => navigate('/register')
         }
       );
     }
@@ -164,6 +200,30 @@ const Header = () => {
     ]
   };
 
+  // Lấy key menu đang active dựa vào pathname
+  const getSelectedKey = () => {
+    if (location.pathname === '/' || location.pathname.startsWith('/home')) return 'home';
+    if (location.pathname.startsWith('/users')) return 'users';
+    if (location.pathname.startsWith('/books')) return 'books';
+    if (location.pathname.startsWith('/categories')) return 'categories';
+    if (location.pathname.startsWith('/orders')) return 'orders';
+    if (location.pathname.startsWith('/login')) return 'login';
+    if (location.pathname.startsWith('/register')) return 'register';
+    return '';
+  };
+
+  // Lấy openKeys cho menu cha
+  const getOpenKeys = () => {
+    if (
+      location.pathname.startsWith('/users') ||
+      location.pathname.startsWith('/books') ||
+      location.pathname.startsWith('/categories')
+    ) {
+      return ['admin-management'];
+    }
+    return [];
+  };
+
   return (
     <AntHeader className="header">
       <div className="header-container">
@@ -180,7 +240,7 @@ const Header = () => {
           mode="horizontal"
           theme="dark"
           className="menu"
-          selectedKeys={[current]}
+          selectedKeys={[getSelectedKey()]}
           onClick={onClick}
           items={getMenuItems()}
         />

@@ -167,6 +167,82 @@ const updateCartItemAPI = (bookId, quantity) => {
     });
 };
 
+// Category APIs
+export const getAllCategoriesAPI = (params = {}) => {
+    const URL_BACKEND = "/api/categories";
+    console.log('Calling getAllCategoriesAPI with params:', params);
+    return axios.get(URL_BACKEND, {
+        params: {
+            page: params.page || 0,
+            size: params.size || 10
+        }
+    });
+};
+
+export const getCategoryByIdAPI = (categoryId) => {
+    const URL_BACKEND = `/api/categories/${categoryId}`;
+    return axios.get(URL_BACKEND);
+};
+
+export const createCategoryAPI = (data) => {
+    const URL_BACKEND = "/api/categories";
+    console.log('Calling createCategoryAPI with data:', data);
+    return axios.post(URL_BACKEND, {
+        name: data.name,
+        description: data.description
+    });
+};
+
+export const updateCategoryAPI = (categoryId, data) => {
+    const URL_BACKEND = `/api/categories/${categoryId}`;
+    console.log('Calling updateCategoryAPI with data:', { categoryId, data });
+    return axios.put(URL_BACKEND, {
+        name: data.name,
+        description: data.description
+    });
+};
+
+export const deleteCategoryAPI = (categoryId) => {
+    const URL_BACKEND = `/api/categories/${categoryId}`;
+    console.log('Calling deleteCategoryAPI with categoryId:', categoryId);
+    return axios.delete(URL_BACKEND);
+};
+
+export const searchCategoriesAPI = (keyword) => {
+    const URL_BACKEND = "/api/categories/search";
+    console.log('Calling searchCategoriesAPI with keyword:', keyword);
+    return axios.get(URL_BACKEND, {
+        params: { keyword }
+    });
+};
+
+// Order APIs
+export const createOrderAPI = async (orderData) => {
+    return await axios.post('/api/orders', orderData);
+};
+
+export const getOrderDetailAPI = async (orderId) => {
+    return await axios.get(`/api/orders/${orderId}`);
+};
+
+export const getUserOrdersAPI = async (params) => {
+    const { current, pageSize } = params;
+    return await axios.get(`/api/orders/user?current=${current}&pageSize=${pageSize}`);
+};
+
+export const getAllOrdersAPI = async (params) => {
+    const { current, pageSize } = params;
+    return await axios.get(`/api/orders/admin/all?current=${current}&pageSize=${pageSize}`);
+};
+
+export const updateOrderStatusAPI = async (orderId, status) => {
+    return await axios.put(`/api/orders/${orderId}/status?status=${status}`);
+};
+
+export const cancelOrderAPI = async (orderId) => {
+    return await axios.post(`/api/orders/${orderId}/cancel`);
+};
+
 export {
     createUserAPI,
     getAllUserAPI,

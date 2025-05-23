@@ -1,10 +1,11 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect } from 'react'
 import Header from './components/layout/header'
 import Footer from './components/layout/footer'
 import { Outlet } from 'react-router-dom'
 import { getAccountAPI } from './services/api-service'
 import { AuthContext } from './components/context/auth-context'
 import { Spin } from 'antd'
+import CategoryList from './components/category/CategoryList'
 
 // CSS cho Spin component
 const spinStyle = {

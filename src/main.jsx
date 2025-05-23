@@ -11,6 +11,7 @@ import App from './App';
 import BookPage from './pages/BookPage';
 import RegisterPage from './pages/RegisterPage';
 import UsersPage from './pages/UsersPage';
+import CategoryList from './components/category/CategoryList';
 import './styles/global.css';
 import Body from './components/body';
 import ErrorPage from './pages/ErrorPage';
@@ -19,6 +20,8 @@ import { CartProvider } from './components/context/cart-context.jsx';
 import PrivateRoute from './pages/private-route';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import BankTransferPage from './pages/BankTransferPage';
+import OrderPage from './pages/OrderPage';
 
 // Wrap App with CartProvider
 const AppWithCart = () => (
@@ -54,6 +57,14 @@ const Router = createBrowserRouter([
         ),
       },
       {
+        path: '/categories',
+        element: (
+          <PrivateRoute>
+            <CategoryList />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: '/cart',
         element: (
           <PrivateRoute>
@@ -66,6 +77,22 @@ const Router = createBrowserRouter([
         element: (
           <PrivateRoute>
             <CheckoutPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/bank-transfer',
+        element: (
+          <PrivateRoute>
+            <BankTransferPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/orders',
+        element: (
+          <PrivateRoute>
+            <OrderPage />
           </PrivateRoute>
         ),
       },
