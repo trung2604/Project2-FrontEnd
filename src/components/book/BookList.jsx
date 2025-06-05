@@ -1,21 +1,20 @@
 import { useContext, useEffect, useState } from "react";
-import { Card, Button, Row, Col, Popconfirm, message, Spin, Space } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, ShoppingCartOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { getAllBookAPI, deleteBookAPI } from "../../services/api-service";
+import { Button, Row, Col, message, Spin, Popconfirm, Empty } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import { getAllBookAPI, deleteBookAPI, getAllCategoriesAPI } from "../../services/api-service";
 import { useCart } from "../context/cart-context.jsx";
 import { useNavigate } from "react-router-dom";
 import BookForm from "./BookForm";
-import BookImage from "./BookImage";
-import '../../styles/book-card.css';
+import BookCard from "./BookCard";
 import BookDetailDrawer from "./BookDetailDrawer";
 import { AuthContext } from "../context/auth-context";
 
-const BookList = () => {
+const BookList = ({ data, loadBooks, current, pageSize, total, setCurrent, setPageSize, setRefreshTrigger, refreshTrigger }) => {
     const { user } = useContext(AuthContext);
     const { addToCart } = useCart();
     const navigate = useNavigate();
     const isAdmin = user?.role === 'ROLE_ADMIN';
-    const [books, setBooks] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [bookData, setBookData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -24,50 +23,58 @@ const BookList = () => {
     const [actionLoading, setActionLoading] = useState({});
 
     useEffect(() => {
-        loadBooks();
-    }, []);
+        loadCategories();
+    }, [refreshTrigger]);
 
-    const loadBooks = async () => {
-        setLoading(true);
+    const loadCategories = async () => {
         try {
-            const response = await getAllBookAPI(1, 100);
-            if (response.data) {
-                setBooks(response.data.result || response.data);
+            const response = await getAllCategoriesAPI();
+            if (response?.data) {
+                const categoriesData = Array.isArray(response.data)
+                    ? response.data
+                    : Array.isArray(response.data.result)
+                        ? response.data.result
+                        : [];
+                setCategories(categoriesData);
             }
-        } catch {
-            message.error("Lỗi khi tải danh sách sách!");
-        } finally {
-            setLoading(false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+            console.error("Error loading categories:", error);
+            message.error("Không thể tải danh sách thể loại");
         }
     };
 
     const handleEdit = (book) => {
+        console.log('Editing book:', book);
         setIsModalOpen(true);
-        setBookData(book);
+        const editBookData = {
+            id: book.id,
+            mainText: book.mainText,
+            author: book.author,
+            price: book.price,
+            sold: book.sold,
+            quantity: book.quantity,
+            category: book.category ? [book.category.id] : [],
+            image: book.image
+        };
+        console.log('Setting bookData for edit:', editBookData);
+        setBookData(editBookData);
     };
 
-    const handleDelete = async (bookId) => {
+    const handleDelete = async (book) => {
         try {
-            const response = await deleteBookAPI(bookId);
+            const response = await deleteBookAPI(book.id);
             if (response.status === 200 || response.status === 204) {
                 message.success({
                     content: "Xóa sách thành công!",
                     description: "Sách đã được xóa khỏi hệ thống.",
                     duration: 3
                 });
-                loadBooks();
-            } else {
-                message.error({
-                    content: "Không thể xóa sách!",
-                    description: "Vui lòng thử lại sau.",
-                    duration: 3
-                });
+                setRefreshTrigger(prev => prev + 1);
             }
         } catch (error) {
             message.error({
                 content: "Xóa sách thất bại!",
-                description: error?.response?.data?.message || "Có lỗi xảy ra khi xóa sách. Vui lòng thử lại sau.",
+                description: error?.response?.data?.message || "Có lỗi xảy ra khi xóa sách.",
                 duration: 3
             });
         }
@@ -84,7 +91,6 @@ const BookList = () => {
     };
 
     const handleAddToCart = async (book, e) => {
-        e.stopPropagation(); // Ngăn chặn sự kiện click lan ra card
         if (!user?.id) {
             message.warning("Vui lòng đăng nhập để thêm vào giỏ hàng");
             navigate('/login');
@@ -99,7 +105,6 @@ const BookList = () => {
     };
 
     const handleBuyNow = async (book, e) => {
-        e.stopPropagation(); // Ngăn chặn sự kiện click lan ra card
         if (!user?.id) {
             message.warning("Vui lòng đăng nhập để mua hàng");
             navigate('/login');
@@ -114,89 +119,145 @@ const BookList = () => {
         }
     };
 
+    const normalizeBook = (book) => {
+        if (book.category && typeof book.category === 'object') {
+            return { ...book, category: [book.category] };
+        }
+        if (!book.category && book.categoryId && categories.length > 0) {
+            const found = categories.find(c => String(c.id) === String(book.categoryId));
+            return { ...book, category: found ? [found] : [] };
+        }
+        return { ...book, category: [] };
+    };
+
     return (
-        <div className="book-list-bg" style={{ padding: "24px 0 0 0", minHeight: "100vh" }}>
-            <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 32px" }}>
-                <h3 style={{ margin: 0, fontWeight: 700, fontSize: 24, color: '#222' }}>{isAdmin ? "Book Management" : "Book Store"}</h3>
+        <div className="book-list-bg" style={{
+            padding: "32px 0",
+            minHeight: "100vh",
+            background: "linear-gradient(135deg, #f7faff 0%, #e3e9f7 100%)"
+        }}>
+            {/* Header Section */}
+            <div style={{
+                width: '100%',
+                maxWidth: 1400,
+                margin: '0 auto 32px auto',
+                padding: '0 24px',
+                display: "flex",
+                flexDirection: 'row',
+                justifyContent: "space-between",
+                alignItems: "center"
+            }}>
+                <div>
+                    <h1 style={{
+                        margin: 0,
+                        fontWeight: 800,
+                        fontSize: 28,
+                        color: '#1a1a1a',
+                        letterSpacing: '-0.5px'
+                    }}>
+                        {isAdmin ? "Quản lý sách" : "Cửa hàng sách"}
+                    </h1>
+                    <p style={{
+                        margin: '8px 0 0 0',
+                        fontSize: 16,
+                        color: '#666',
+                        fontWeight: 400
+                    }}>
+                        {isAdmin ? "Quản lý và cập nhật thông tin sách" : "Khám phá bộ sưu tập sách mới nhất"}
+                    </p>
+                </div>
                 {isAdmin && (
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ fontWeight: 600, fontSize: 16 }}>
-                        Create Book
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleCreate}
+                        style={{
+                            fontWeight: 600,
+                            fontSize: 16,
+                            height: '44px',
+                            padding: '0 28px',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 8px rgba(24,144,255,0.15)'
+                        }}
+                    >
+                        Thêm sách mới
                     </Button>
                 )}
             </div>
-            <Spin spinning={loading} tip="Đang tải sách..." size="large">
-                <Row gutter={[32, 32]} justify="center" style={{ padding: "0 16px" }}>
-                    {books.map((book) => (
-                        <Col xs={24} sm={12} md={8} lg={6} xl={6} xxl={4} key={book.id}>
-                            <Card
-                                className="book-card"
-                                cover={
-                                    <div onClick={() => handleCardClick(book)}>
-                                        <BookImage image={book.image} alt={book.mainText} />
-                                    </div>
-                                }
-                                actions={isAdmin ? [
-                                    <Button icon={<EditOutlined />} onClick={() => handleEdit(book)}>Edit</Button>,
-                                    <Popconfirm
-                                        title="Bạn có chắc chắn muốn xóa sách này?"
-                                        onConfirm={() => handleDelete(book.id)}
-                                        okText="Xóa"
-                                        cancelText="Hủy"
-                                    >
-                                        <Button danger icon={<DeleteOutlined />}>Delete</Button>
-                                    </Popconfirm>
-                                ] : [
-                                    <Space direction="vertical" style={{ width: '100%', padding: '8px 0' }}>
-                                        <Button
-                                            type="primary"
-                                            icon={<ShoppingCartOutlined />}
-                                            onClick={(e) => handleAddToCart(book, e)}
-                                            loading={actionLoading[book.id]}
-                                            block
-                                        >
-                                            Thêm vào giỏ
-                                        </Button>
-                                        <Button
-                                            type="primary"
-                                            danger
-                                            icon={<ThunderboltOutlined />}
-                                            onClick={(e) => handleBuyNow(book, e)}
-                                            loading={actionLoading[book.id]}
-                                            block
-                                        >
-                                            Mua ngay
-                                        </Button>
-                                    </Space>
-                                ]}
-                                onClick={() => !isAdmin && handleCardClick(book)}
-                                style={{ cursor: isAdmin ? 'default' : 'pointer' }}
+
+            {/* Main Content */}
+            <div style={{
+                width: '100%',
+                maxWidth: 1400,
+                margin: '0 auto',
+                padding: '0 24px'
+            }}>
+                <Spin spinning={loading} tip="Đang tải sách..." size="large">
+                    <Row
+                        gutter={[32, 32]}
+                        justify="start"
+                        style={{ margin: '0 -12px' }}
+                    >
+                        {Array.isArray(data) && data.map((book) => (
+                            <Col
+                                xs={24}
+                                sm={12}
+                                md={8}
+                                lg={6}
+                                xl={6}
+                                xxl={4}
+                                key={book.id}
+                                style={{
+                                    padding: '0 12px',
+                                    display: 'flex',
+                                    justifyContent: 'center'
+                                }}
                             >
-                                <Card.Meta
-                                    title={book.mainText}
-                                    description={
-                                        <>
-                                            <div>Tác giả: {book.author}</div>
-                                            <div style={{ color: '#f5222d', fontWeight: 600, fontSize: 16 }}>
-                                                {book.price?.toLocaleString()}đ
-                                            </div>
-                                            <div style={{ color: book.quantity > 0 ? '#52c41a' : '#f5222d' }}>
-                                                {book.quantity > 0 ? `Còn ${book.quantity} cuốn` : 'Hết hàng'}
-                                            </div>
-                                        </>
-                                    }
+                                <BookCard
+                                    book={normalizeBook(book)}
+                                    categories={categories}
+                                    isAdmin={isAdmin}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                    onAddToCart={handleAddToCart}
+                                    onBuyNow={handleBuyNow}
+                                    onClick={handleCardClick}
+                                    loading={actionLoading[book.id]}
+                                    style={{
+                                        width: '100%',
+                                        maxWidth: '280px',
+                                        transition: 'all 0.3s ease'
+                                    }}
                                 />
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
-            </Spin>
+                            </Col>
+                        ))}
+                    </Row>
+                    {(!data || data.length === 0) && !loading && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '48px 0',
+                            background: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                        }}>
+                            <Empty
+                                description="Chưa có sách nào"
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            />
+                        </div>
+                    )}
+                </Spin>
+            </div>
+
+            {/* Modals and Drawers */}
             <BookForm
                 isModalOpen={isModalOpen}
                 setIsModalOpen={setIsModalOpen}
                 bookData={bookData}
                 setBookData={setBookData}
-                loadBooks={loadBooks}
+                setRefreshTrigger={setRefreshTrigger}
             />
+
             <BookDetailDrawer
                 open={showDrawer}
                 onClose={() => setShowDrawer(false)}
@@ -211,7 +272,7 @@ const BookList = () => {
                 onDelete={(book) => {
                     setShowDrawer(false);
                     setTimeout(() => {
-                        handleDelete(book.id);
+                        handleDelete(book);
                     }, 300);
                 }}
             />

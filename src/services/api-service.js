@@ -77,36 +77,44 @@ const getAllBookAPI = (current, pageSize) => {
 const addBookAPI = (book) => {
     const URL_BACKEND = "/api/bookStore/book/add";
     const formData = new FormData();
-    if (book.file) formData.append('file', book.file);
-    formData.append('mainText', book.title);
-    formData.append('author', book.author);
-    formData.append('price', book.price);
-    formData.append('sold', book.sold || 0);
-    formData.append('quantity', book.quantity);
-    if (Array.isArray(book.category)) {
-        book.category.forEach(cat => formData.append('category', cat));
-    } else {
-        formData.append('category', book.category);
+    const bookData = {
+        mainText: book.title,
+        author: book.author,
+        price: book.price,
+        sold: book.sold || 0,
+        quantity: book.quantity,
+        categoryName: book.categoryName
+    };
+    formData.append('book', new Blob([JSON.stringify(bookData)], { type: 'application/json' }));
+    if (book.file) {
+        formData.append('imageFile', book.file);
     }
-    return axios.post(URL_BACKEND, formData);
+    return axios.post(URL_BACKEND, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
 };
 
-const updateBookAPI = (book) => {
-    const URL_BACKEND = "/api/bookStore/book/update";
+const updateBookAPI = (id, bookData, file = null) => {
+    const URL_BACKEND = `/api/bookStore/book/${id}`;
     const formData = new FormData();
-    formData.append('id', book.id);
-    if (book.file) formData.append('file', book.file);
-    formData.append('mainText', book.title);
-    formData.append('author', book.author);
-    formData.append('price', book.price);
-    formData.append('sold', book.sold || 0);
-    formData.append('quantity', book.quantity);
-    if (Array.isArray(book.category)) {
-        book.category.forEach(cat => formData.append('category', cat));
-    } else {
-        formData.append('category', book.category);
+
+    // Thêm book data vào formData
+    formData.append('bookData', new Blob([JSON.stringify(bookData)], {
+        type: 'application/json'
+    }));
+
+    // Thêm file nếu có
+    if (file) {
+        formData.append('imageFile', file);
     }
-    return axios.put(URL_BACKEND, formData);
+
+    return axios.put(URL_BACKEND, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
 };
 
 const deleteBookAPI = (id) => {
@@ -168,9 +176,8 @@ const updateCartItemAPI = (bookId, quantity) => {
 };
 
 // Category APIs
-export const getAllCategoriesAPI = (params = {}) => {
-    const URL_BACKEND = "/api/categories";
-    console.log('Calling getAllCategoriesAPI with params:', params);
+const getAllCategoriesAPI = (params = {}) => {
+    const URL_BACKEND = "/api/bookStore/category";
     return axios.get(URL_BACKEND, {
         params: {
             page: params.page || 0,
@@ -179,38 +186,34 @@ export const getAllCategoriesAPI = (params = {}) => {
     });
 };
 
-export const getCategoryByIdAPI = (categoryId) => {
-    const URL_BACKEND = `/api/categories/${categoryId}`;
+const getCategoryByIdAPI = (categoryId) => {
+    const URL_BACKEND = `/api/bookStore/category/${categoryId}`;
     return axios.get(URL_BACKEND);
 };
 
-export const createCategoryAPI = (data) => {
-    const URL_BACKEND = "/api/categories";
-    console.log('Calling createCategoryAPI with data:', data);
+const createCategoryAPI = (data) => {
+    const URL_BACKEND = "/api/bookStore/category/add";
     return axios.post(URL_BACKEND, {
         name: data.name,
         description: data.description
     });
 };
 
-export const updateCategoryAPI = (categoryId, data) => {
-    const URL_BACKEND = `/api/categories/${categoryId}`;
-    console.log('Calling updateCategoryAPI with data:', { categoryId, data });
+const updateCategoryAPI = (categoryId, data) => {
+    const URL_BACKEND = `/api/bookStore/category/update/${categoryId}`;
     return axios.put(URL_BACKEND, {
         name: data.name,
         description: data.description
     });
 };
 
-export const deleteCategoryAPI = (categoryId) => {
-    const URL_BACKEND = `/api/categories/${categoryId}`;
-    console.log('Calling deleteCategoryAPI with categoryId:', categoryId);
+const deleteCategoryAPI = (categoryId) => {
+    const URL_BACKEND = `/api/bookStore/category/delete/${categoryId}`;
     return axios.delete(URL_BACKEND);
 };
 
-export const searchCategoriesAPI = (keyword) => {
-    const URL_BACKEND = "/api/categories/search";
-    console.log('Calling searchCategoriesAPI with keyword:', keyword);
+const searchCategoriesAPI = (keyword) => {
+    const URL_BACKEND = "/api/bookStore/category/search";
     return axios.get(URL_BACKEND, {
         params: { keyword }
     });
@@ -218,29 +221,53 @@ export const searchCategoriesAPI = (keyword) => {
 
 // Order APIs
 export const createOrderAPI = async (orderData) => {
-    return await axios.post('/api/orders', orderData);
+    return await axios.post('/api/bookStore/orders', orderData);
 };
 
 export const getOrderDetailAPI = async (orderId) => {
-    return await axios.get(`/api/orders/${orderId}`);
+    return await axios.get(`/api/bookStore/orders/${orderId}`);
 };
 
 export const getUserOrdersAPI = async (params) => {
-    const { current, pageSize } = params;
-    return await axios.get(`/api/orders/user?current=${current}&pageSize=${pageSize}`);
+    // params: { page, size, sort }
+    return await axios.get('/api/bookStore/orders/user', { params });
 };
 
 export const getAllOrdersAPI = async (params) => {
-    const { current, pageSize } = params;
-    return await axios.get(`/api/orders/admin/all?current=${current}&pageSize=${pageSize}`);
+    // params: { page, size, sort, status, search }
+    return await axios.get('/api/bookStore/orders/admin', { params });
 };
 
 export const updateOrderStatusAPI = async (orderId, status) => {
-    return await axios.put(`/api/orders/${orderId}/status?status=${status}`);
+    return await axios.put(`/api/bookStore/orders/${orderId}/status?status=${status}`);
 };
 
 export const cancelOrderAPI = async (orderId) => {
-    return await axios.post(`/api/orders/${orderId}/cancel`);
+    return await axios.post(`/api/bookStore/orders/${orderId}/cancel`);
+};
+
+export const getBooksByCategoryAPI = (categoryId) => {
+    return axios.get(`/api/bookStore/book/category/${categoryId}`);
+};
+
+export const getBookCountByCategoryAPI = () => {
+    return axios.get('/api/bookStore/category/category-count');
+};
+
+export const confirmOrderAPI = async (orderId) => {
+    return await axios.post(`/api/bookStore/orders/${orderId}/confirm`);
+};
+
+export const getShipperOrdersAPI = async (params) => {
+    return await axios.get('/api/bookStore/orders/shipper', { params });
+};
+
+export const startShippingOrderAPI = async (orderId) => {
+    return await axios.post(`/api/bookStore/orders/${orderId}/shipping`);
+};
+
+export const deliveredOrderAPI = async (orderId) => {
+    return await axios.post(`/api/bookStore/orders/${orderId}/delivered`);
 };
 
 export {
@@ -264,5 +291,11 @@ export {
     addToCartAPI,
     removeCartItemAPI,
     clearCartAPI,
-    getCartItemsAPI
+    getCartItemsAPI,
+    getAllCategoriesAPI,
+    getCategoryByIdAPI,
+    createCategoryAPI,
+    updateCategoryAPI,
+    deleteCategoryAPI,
+    searchCategoriesAPI
 };

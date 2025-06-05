@@ -8,7 +8,6 @@ import {
 } from "react-router-dom";
 import LoginPage from './pages/LoginPage';
 import App from './App';
-import BookPage from './pages/BookPage';
 import RegisterPage from './pages/RegisterPage';
 import UsersPage from './pages/UsersPage';
 import CategoryList from './components/category/CategoryList';
@@ -22,6 +21,9 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import BankTransferPage from './pages/BankTransferPage';
 import OrderPage from './pages/OrderPage';
+import CategoryBooksPage from './pages/CategoryBooksPage';
+import BooksPage from './pages/BooksPage';
+import ShipperOrdersPage from './pages/ShipperOrdersPage';
 
 // Wrap App with CartProvider
 const AppWithCart = () => (
@@ -52,7 +54,7 @@ const Router = createBrowserRouter([
         path: '/books',
         element: (
           <PrivateRoute>
-            <BookPage />
+            <BooksPage />
           </PrivateRoute>
         ),
       },
@@ -61,6 +63,14 @@ const Router = createBrowserRouter([
         element: (
           <PrivateRoute>
             <CategoryList />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/categories/:categoryId',
+        element: (
+          <PrivateRoute>
+            <CategoryBooksPage />
           </PrivateRoute>
         ),
       },
@@ -93,6 +103,14 @@ const Router = createBrowserRouter([
         element: (
           <PrivateRoute>
             <OrderPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/shipper/orders',
+        element: (
+          <PrivateRoute requiredRole="ROLE_SHIPPER">
+            <ShipperOrdersPage />
           </PrivateRoute>
         ),
       },

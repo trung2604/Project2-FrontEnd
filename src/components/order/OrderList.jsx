@@ -3,7 +3,7 @@ import { Table, Button, Space, Modal, message, Tag, Tooltip, Select, Popconfirm 
 import { EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/auth-context';
 import { useNavigate } from 'react-router-dom';
-import { getUserOrdersAPI, getAllOrdersAPI, updateOrderStatusAPI, cancelOrderAPI } from '../../services/api-service';
+import { getUserOrdersAPI, getAllOrdersAPI, updateOrderStatusAPI, cancelOrderAPI, confirmOrderAPI } from '../../services/api-service';
 
 const { Option } = Select;
 
@@ -29,21 +29,19 @@ const OrderList = () => {
         setLoading(true);
         try {
             const params = {
-                current: current - 1,  // Đổi page thành current để match với backend
-                pageSize: pageSize     // Đổi size thành pageSize để match với backend
+                page: current - 1,
+                size: pageSize,
+                sort: 'createdAt,desc',
             };
             const res = isAdmin
                 ? await getAllOrdersAPI(params)
                 : await getUserOrdersAPI(params);
 
-            if (res?.data) {  // Bỏ kiểm tra .data.data vì có thể response format khác
+            if (res?.data) {
                 let orderList = res.data.result || [];
-                // Sắp xếp: Đơn chưa hủy (mới nhất trước) -> Đơn đã hủy (mới nhất trước)
                 orderList = orderList.sort((a, b) => {
-                    // Đơn chưa hủy lên trên
                     if (a.status === 'CANCELLED' && b.status !== 'CANCELLED') return 1;
                     if (a.status !== 'CANCELLED' && b.status === 'CANCELLED') return -1;
-                    // Cùng trạng thái, sắp xếp theo ngày tạo mới nhất
                     return new Date(b.createdAt) - new Date(a.createdAt);
                 });
                 setOrders(orderList);
@@ -78,28 +76,45 @@ const OrderList = () => {
     const handleUpdateStatus = async (orderId, newStatus) => {
         try {
             const res = await updateOrderStatusAPI(orderId, newStatus);
-            if (res?.data?.code === 200) {
+            if (res.success === true) {
                 message.success('Cập nhật trạng thái đơn hàng thành công');
                 setRefreshTrigger(prev => prev + 1);
             }
         } catch (error) {
             console.error('Error updating order status:', error);
-            message.error(error?.response?.data?.message || 'Lỗi khi cập nhật trạng thái đơn hàng');
+            message.error(error?.message || 'Lỗi khi cập nhật trạng thái đơn hàng');
         }
     };
 
     const handleCancel = async (orderId) => {
         try {
             const res = await cancelOrderAPI(orderId);
-            if (res?.data?.code === 200) {
-                message.success('Hủy đơn hàng thành công');
-                setRefreshTrigger(prev => prev + 1);
+            const msg = res?.message || res?.data?.message || 'Hủy đơn hàng thành công';
+            if (res.success === true) {
+                message.success(msg);
+                await loadOrders();
             } else {
-                message.error(res?.data?.message || 'Hủy đơn hàng thất bại!');
+                message.error(msg || 'Hủy đơn hàng thất bại!');
             }
         } catch (error) {
             console.error('Error cancelling order:', error);
-            message.error(error?.response?.data?.message || 'Lỗi khi hủy đơn hàng');
+            const msg = error?.response?.data?.message || error?.message || 'Lỗi khi hủy đơn hàng';
+            message.error(msg);
+        }
+    };
+
+    const handleConfirm = async (orderId) => {
+        try {
+            const res = await confirmOrderAPI(orderId);
+            if (res.success === true) {
+                message.success('Xác nhận đơn hàng thành công');
+                await loadOrders();
+            } else {
+                message.error('Xác nhận đơn hàng thất bại!');
+            }
+        } catch (error) {
+            console.error('Error confirming order:', error);
+            message.error(error?.message || 'Lỗi khi xác nhận đơn hàng');
         }
     };
 
@@ -195,28 +210,24 @@ const OrderList = () => {
                         icon={<EyeOutlined />}
                         onClick={() => handleViewDetail(record)}
                     >
-                        Chi tiết
+                        Xem
                     </Button>
                     {isAdmin && record.status === 'PENDING' && (
-                        <Select
-                            style={{ width: 150 }}
-                            placeholder="Cập nhật trạng thái"
-                            onChange={(value) => handleUpdateStatus(record.id, value)}
+                        <Button
+                            type="primary"
+                            onClick={() => handleConfirm(record.id)}
                         >
-                            <Option value="CONFIRMED">Xác nhận</Option>
-                            <Option value="CANCELLED">Hủy đơn</Option>
-                        </Select>
+                            Xác nhận
+                        </Button>
                     )}
-                    {!isAdmin && record.status === 'PENDING' && (
+                    {record.status !== 'CANCELLED' && (
                         <Popconfirm
-                            title="Bạn có chắc chắn muốn hủy đơn hàng này?"
+                            title="Bạn chắc chắn muốn hủy đơn này?"
                             onConfirm={() => handleCancel(record.id)}
-                            okText="Hủy đơn"
+                            okText="Hủy"
                             cancelText="Không"
                         >
-                            <Button danger icon={<DeleteOutlined />}>
-                                Hủy đơn
-                            </Button>
+                            <Button danger>Hủy</Button>
                         </Popconfirm>
                     )}
                 </Space>

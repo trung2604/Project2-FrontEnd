@@ -26,10 +26,10 @@ const UpdateUser = ({ isModalUpdateOpen, setIsModalUpdateOpen, dataUpdate, setDa
     const onFinish = async (values) => {
         try {
             const response = await updateUserAPI(values.id, values.fullName, values.phone);
-            if (response.status === 200) {
+            if (response?.success === true) {
                 notification.success({
                     message: "Update User",
-                    description: "User updated successfully"
+                    description: response?.message || "User updated successfully"
                 });
                 handleModalClose();
                 await loadUser();

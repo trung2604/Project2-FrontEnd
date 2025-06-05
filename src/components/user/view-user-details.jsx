@@ -43,7 +43,7 @@ const ViewUserDetails = ({ isDetailsOpen, setIsDetailsOpen, dataDetails, setData
         setIsUploading(true);
         try {
             const response = await updateAvatarAPI(selectedFile, dataDetails.id);
-            if (response.statusCode === 200) {
+            if (response.success === true) {
                 setDataDetails({});
                 setPreview(null);
                 setSelectedFile(null);

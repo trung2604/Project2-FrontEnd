@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Table, Button, Space, Modal, Form, Input, message, Popconfirm } from 'antd';
+import { Table, Button, Space, Modal, Form, Input, message, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { getAllCategoriesAPI, createCategoryAPI, updateCategoryAPI, deleteCategoryAPI } from '../../services/api-service';
+import { getAllCategoriesAPI, createCategoryAPI, updateCategoryAPI, deleteCategoryAPI, getBookCountByCategoryAPI } from '../../services/api-service';
 import { AuthContext } from '../context/auth-context';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const { TextArea } = Input;
 
@@ -20,11 +20,29 @@ const CategoryList = () => {
     const [pageSize, setPageSize] = useState(10);
     const [total, setTotal] = useState(0);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [bookCounts, setBookCounts] = useState({});
 
     useEffect(() => {
         loadCategories();
+        loadBookCounts();
         // eslint-disable-next-line
     }, [current, pageSize, refreshTrigger]);
+
+    const loadBookCounts = async () => {
+        try {
+            const res = await getBookCountByCategoryAPI();
+            if (res?.data && Array.isArray(res.data)) {
+                const countMap = {};
+                res.data.forEach(item => {
+                    countMap[item.categoryId] = item.bookCount;
+                });
+                setBookCounts(countMap);
+            }
+        } catch (error) {
+            console.error('Error loading book counts:', error);
+            message.error('Không thể tải số lượng sách theo danh mục');
+        }
+    };
 
     const loadCategories = async () => {
         setLoading(true);
@@ -76,15 +94,19 @@ const CategoryList = () => {
     };
 
     const handleDelete = async (categoryId) => {
+        console.log('Deleting category with ID:', categoryId);
+        console.log('Category type:', typeof categoryId);
         try {
             const res = await deleteCategoryAPI(categoryId);
-            if (res?.statusCode === 200) {
+            console.log('Delete category response:', res);
+            if (res?.data?.success === true || res?.status === 200) {
                 message.success('Xóa danh mục thành công');
                 setRefreshTrigger(prev => prev + 1);
             }
         } catch (error) {
             console.error('Error deleting category:', error);
-            message.error(error?.response?.message || 'Lỗi khi xóa danh mục');
+            console.error('Error response:', error?.response);
+            message.error(error?.response?.data?.message || 'Lỗi khi xóa danh mục');
         }
     };
 
@@ -112,10 +134,24 @@ const CategoryList = () => {
 
     const columns = [
         {
+            title: 'ID',
+            dataIndex: 'id',
+            key: 'id',
+            render: (id) => {
+                console.log('Rendering category ID:', id);
+                return id;
+            }
+        },
+        {
             title: 'Tên danh mục',
             dataIndex: 'name',
             key: 'name',
-            sorter: true
+            sorter: true,
+            render: (text, record) => (
+                <Link to={`/categories/${record.id}`} state={{ category: record }}>
+                    {text}
+                </Link>
+            )
         },
         {
             title: 'Mô tả',
@@ -124,45 +160,72 @@ const CategoryList = () => {
             ellipsis: true
         },
         {
-            title: 'Ngày tạo',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-            render: (text) => new Date(text).toLocaleDateString('vi-VN')
-        },
-        {
-            title: 'Ngày cập nhật',
-            dataIndex: 'updatedAt',
-            key: 'updatedAt',
-            render: (text) => new Date(text).toLocaleDateString('vi-VN')
-        },
-        {
+            title: 'Số lượng sách',
+            key: 'bookCount',
+            align: 'center',
+            render: (_, record) => {
+                const count = bookCounts[record.id] ?? 0;
+                return <Tag color="blue">{count} sách</Tag>;
+            }
+        }
+    ];
+
+    if (isAdmin) {
+        columns.push(
+            {
+                title: 'Ngày tạo',
+                dataIndex: 'createdAt',
+                key: 'createdAt',
+                render: (text) => text ? new Date(text).toLocaleDateString('vi-VN') : '-'
+            },
+            {
+                title: 'Ngày cập nhật',
+                dataIndex: 'updatedAt',
+                key: 'updatedAt',
+                render: (text) => text ? new Date(text).toLocaleDateString('vi-VN') : '-'
+            }
+        );
+    }
+
+    if (isAdmin) {
+        columns.push({
             title: 'Thao tác',
             key: 'action',
             render: (_, record) => (
-                isAdmin && (
-                    <Space size="middle">
-                        <Button
-                            type="primary"
-                            icon={<EditOutlined />}
-                            onClick={() => handleEdit(record)}
-                        >
-                            Sửa
-                        </Button>
-                        <Popconfirm
-                            title="Bạn có chắc chắn muốn xóa danh mục này?"
-                            onConfirm={() => handleDelete(record.id)}
-                            okText="Xóa"
-                            cancelText="Hủy"
-                        >
-                            <Button danger icon={<DeleteOutlined />}>
-                                Xóa
+                <Space size="middle">
+                    {isAdmin && (
+                        <>
+                            <Button
+                                type="primary"
+                                icon={<EditOutlined />}
+                                onClick={() => handleEdit(record)}
+                            >
+                                Sửa
                             </Button>
-                        </Popconfirm>
-                    </Space>
-                )
-            )
-        }
-    ];
+                            <Popconfirm
+                                title="Xóa danh mục"
+                                description="Bạn có chắc chắn muốn xóa danh mục này?"
+                                onConfirm={() => {
+                                    console.log('Confirm delete category:', record);
+                                    console.log('Category ID to delete:', record.id);
+                                    handleDelete(record.id);
+                                }}
+                                okText="Xóa"
+                                cancelText="Hủy"
+                            >
+                                <Button
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                >
+                                    Xóa
+                                </Button>
+                            </Popconfirm>
+                        </>
+                    )}
+                </Space>
+            ),
+        });
+    }
 
     return (
         <div style={{ padding: '24px' }}>

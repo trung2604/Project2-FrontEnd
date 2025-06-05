@@ -1,9 +1,10 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import {
   addToCartAPI, updateCartItemAPI, removeCartItemAPI,
   clearCartAPI, getCartItemsAPI
 } from "../../services/api-service";
 import { message } from "antd";
+import { AuthContext } from "./auth-context";
 
 export const CartContext = createContext();
 
@@ -11,29 +12,30 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useContext(AuthContext);
+
+  // Debug: log mỗi lần cart thay đổi
+  useEffect(() => {
+    console.log('Cart state changed:', cart);
+  }, [cart]);
 
   // Lấy lại giỏ hàng từ backend
   const fetchCart = async () => {
     setIsLoading(true);
     try {
       const res = await getCartItemsAPI();
-      if (res && res.data) {
-        let items = [];
-        if (Array.isArray(res.data)) {
-          items = res.data;
-        } else if (Array.isArray(res.data.items)) {
-          items = res.data.items;
-        } else if (Array.isArray(res.data.data)) {
-          items = res.data.data;
-        } else {
-          items = [];
-        }
-        setCart(items);
-        setTotal(res.data.total || 0);
+      if (res?.data?.items) {
+        setCart(res.data.items);
+        const totalAmount = res.data.items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+        setTotal(totalAmount);
+      } else {
+        setCart([]);
+        setTotal(0);
       }
     } catch (err) {
-      console.error("[CartContext] Lỗi khi lấy giỏ hàng:", err);
       message.error("Không thể lấy thông tin giỏ hàng. Vui lòng thử lại sau.");
+      setCart([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }

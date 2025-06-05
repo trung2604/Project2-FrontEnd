@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useCart } from "../components/context/cart-context.jsx";
 import { Table, Button, InputNumber, Popconfirm, message, Empty, Modal } from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../components/context/auth-context";
 
 const QuantityInput = ({ quantity, bookId, onUpdate, disabled }) => {
     const [localQty, setLocalQty] = useState(quantity);
@@ -36,17 +37,19 @@ const CartPage = () => {
     const {
         cart, isLoading, fetchCart, updateCartItem, removeCartItem, clearCart
     } = useCart();
+    const { user } = useContext(AuthContext);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [checkoutModal, setCheckoutModal] = useState(false);
     const navigate = useNavigate();
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
     useEffect(() => {
-        fetchCart();
-    }, []);
+        if (user && user.id) {
+            fetchCart();
+        }
+    }, [user]);
 
     const handleUpdateQuantity = async (bookId, quantity) => {
-        console.log("DEBUG: bookId =", bookId, "| typeof =", typeof bookId);
-
         if (!bookId || typeof bookId !== 'string' || bookId.trim() === '') {
             message.error("ID sách không hợp lệ");
             return;
@@ -80,27 +83,42 @@ const CartPage = () => {
         }
     };
 
-    const handleCheckout = () => {
-        if (cart.length === 0) {
-            message.warning("Giỏ hàng trống!");
-            return;
-        }
-        navigate("/checkout", { state: { cart } });
+    const rowSelection = {
+        selectedRowKeys,
+        onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
+        getCheckboxProps: (record) => ({
+            disabled: isLoading || checkoutLoading
+        })
     };
 
-    const total = cart.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+    const handleCheckout = () => {
+        const selectedItems = cart.filter(item => selectedRowKeys.includes(item.id));
+        if (selectedItems.length === 0) {
+            message.warning("Vui lòng chọn sản phẩm muốn thanh toán!");
+            return;
+        }
+        navigate("/checkout", { state: { cart: selectedItems } });
+    };
+
+    const cartItems = cart || [];
+    const total = cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
 
     const columns = [
         {
             title: "Ảnh",
             dataIndex: "bookImage",
-            render: (img) => (
-                <img
-                    src={img}
-                    alt=""
-                    style={{ width: 60, height: 80, objectFit: "cover", borderRadius: 6, boxShadow: "0 2px 8px #eee" }}
-                />
-            )
+            render: (img) => {
+                const src = img?.medium || img?.original || img?.thumbnail || "";
+                return src ? (
+                    <img
+                        src={src}
+                        alt=""
+                        style={{ width: 60, height: 80, objectFit: "cover", borderRadius: 6, boxShadow: "0 2px 8px #eee" }}
+                    />
+                ) : (
+                    <span>Không có ảnh</span>
+                );
+            }
         },
         {
             title: "Tên sách",
@@ -124,7 +142,7 @@ const CartPage = () => {
             render: (quantity, record) => (
                 <QuantityInput
                     quantity={quantity}
-                    bookId={record.bookId || record.id}
+                    bookId={record.bookId}
                     onUpdate={handleUpdateQuantity}
                     disabled={isLoading || checkoutLoading}
                 />
@@ -133,14 +151,14 @@ const CartPage = () => {
         {
             title: "Tổng tiền",
             dataIndex: "totalPrice",
-            render: (total) => total?.toLocaleString() + " đ"
+            render: (totalPrice) => totalPrice?.toLocaleString() + " đ"
         },
         {
             title: "Thao tác",
             render: (_, record) => (
                 <Popconfirm
                     title="Xóa sách khỏi giỏ hàng?"
-                    onConfirm={() => handleRemove(record.bookId || record.id)}
+                    onConfirm={() => handleRemove(record.bookId)}
                     okText="Xóa"
                     cancelText="Hủy"
                 >
@@ -169,11 +187,12 @@ const CartPage = () => {
                 Giỏ hàng của bạn
             </h2>
 
-            {cart.length > 0 ? (
+            {cartItems.length > 0 ? (
                 <Table
-                    dataSource={cart}
+                    rowSelection={rowSelection}
+                    dataSource={cartItems}
                     columns={columns}
-                    rowKey="bookId"
+                    rowKey="id"
                     pagination={false}
                     loading={isLoading}
                     summary={() => (
@@ -226,7 +245,7 @@ const CartPage = () => {
                         boxShadow: "0 2px 8px rgba(24,144,255,0.2)"
                     }}
                     onClick={handleCheckout}
-                    disabled={cart.length === 0 || isLoading || checkoutLoading}
+                    disabled={selectedRowKeys.length === 0 || isLoading || checkoutLoading}
                     loading={checkoutLoading}
                 >
                     Thanh toán

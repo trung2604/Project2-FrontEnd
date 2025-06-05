@@ -1,86 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import '../../styles/book-card.css';
 
-const BookImage = ({
-    image,
-    alt = 'Book image',
-    className = '',
-    fallbackImage = 'https://via.placeholder.com/150'
-}) => {
-    const [error, setError] = useState(false);
-    const [imageFormat, setImageFormat] = useState('jpg');
-
-    useEffect(() => {
-        setError(false);
-        if (image?.format) {
-            setImageFormat(image.format.toLowerCase());
+const BookImage = ({ image, alt, style, size = 'thumbnail', objectFit = 'contain' }) => {
+    let src = '';
+    if (typeof image === 'string') {
+        src = image;
+    } else if (image) {
+        if (size === 'medium' && image.medium) {
+            src = image.medium;
+        } else if (size === 'original' && image.original) {
+            src = image.original;
+        } else if (size === 'thumbnail' && image.thumbnail) {
+            src = image.thumbnail;
+        } else {
+            // fallback: thumbnail -> medium -> original
+            src = image.thumbnail || image.medium || image.original || '';
         }
-    }, [image]);
-
-    const handleImageError = () => {
-        setError(true);
-    };
-
-    if (!image || error) {
+    }
+    // Responsive <picture> for best format
+    if (image && typeof image === 'object') {
         return (
-            <div className={`book-image-container ${className}`} style={{ textAlign: 'center' }}>
+            <picture>
+                {image.thumbnail && <source media="(max-width: 480px)" srcSet={image.thumbnail} />}
+                {image.medium && <source media="(max-width: 900px)" srcSet={image.medium} />}
+                {image.original && <source media="(min-width: 901px)" srcSet={image.original} />}
                 <img
-                    src={fallbackImage}
+                    src={src || '/default-book.png'}
                     alt={alt}
-                    className="book-card-image"
-                    onError={handleImageError}
+                    style={{ width: '100%', height: '100%', objectFit, ...style }}
+                    onError={e => { e.target.src = '/default-book.png'; }}
                 />
-            </div>
+            </picture>
         );
     }
-
-    const hasValidUrls = image.thumbnail && image.medium && image.original;
-    if (!hasValidUrls) {
-        return (
-            <div className={`book-image-container ${className}`} style={{ textAlign: 'center' }}>
-                <img
-                    src={fallbackImage}
-                    alt={alt}
-                    className="book-card-image"
-                />
-            </div>
-        );
-    }
-
     return (
-        <picture className={`book-image-container ${className}`} style={{ textAlign: 'center' }}>
-            <source
-                media="(max-width: 480px)"
-                srcSet={image.thumbnail}
-                type={`image/${imageFormat}`}
-            />
-            <source
-                media="(max-width: 768px)"
-                srcSet={image.medium}
-                type={`image/${imageFormat}`}
-            />
-            <img
-                src={image.original}
-                alt={alt}
-                className="book-card-image"
-                loading="lazy"
-                onError={handleImageError}
-            />
-        </picture>
+        <img
+            src={src || '/default-book.png'}
+            alt={alt}
+            style={{ width: '100%', height: '100%', objectFit, ...style }}
+            onError={e => { e.target.src = '/default-book.png'; }}
+        />
     );
 };
 
 BookImage.propTypes = {
-    image: PropTypes.shape({
-        thumbnail: PropTypes.string,
-        medium: PropTypes.string,
-        original: PropTypes.string,
-        format: PropTypes.string
-    }),
+    image: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     alt: PropTypes.string,
-    className: PropTypes.string,
-    fallbackImage: PropTypes.string
+    style: PropTypes.object,
+    size: PropTypes.oneOf(['thumbnail', 'medium', 'original']),
+    objectFit: PropTypes.oneOf(['cover', 'contain'])
 };
 
-export default React.memo(BookImage); 
+export default BookImage; 

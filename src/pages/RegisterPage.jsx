@@ -16,7 +16,7 @@ const RegisterPage = () => {
         values.password,
         values.phoneNumber
       );
-      if (response.data && response.status === 201) {
+      if (response.data && response.success === true) {
         notification.success({
           message: "Register",
           description: "Register successfully"

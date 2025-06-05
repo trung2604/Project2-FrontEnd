@@ -173,8 +173,9 @@ const UserForm = ({ isModalOpen, setIsModalOpen, userData, loadUser }) => {
                         rules={[{ required: true, message: "Please select a role!" }]}
                     >
                         <Select placeholder="Select role">
-                            <Option value="USER">User</Option>
+                            <Option value="ROLE_USER">User</Option>
                             <Option value="ROLE_ADMIN">ROLE_ADMIN</Option>
+                            <Option value="ROLE_SHIPPER">ROLE_SHIPPER</Option>
                         </Select>
                     </Form.Item>
 

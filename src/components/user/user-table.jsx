@@ -11,29 +11,38 @@ const UserTable = ({ data, loadUser, current, pageSize, total, setCurrent, setPa
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const handleConfirmDelete = async (id) => {
     try {
+      console.log('Deleting user with id:', id);
       const response = await deleteUserAPI(id);
-      console.log(response);
-      if (response.data && response.status === 200) {
+      console.log('Delete API response:', response);
+      console.log('Response data:', response?.data);
+      console.log('Response status:', response?.status);
+
+      if (response?.status === 200 || response?.data?.success === true) {
         notification.success({
           message: "Delete User",
-          description: "User deleted successfully"
-        })
+          description: response?.data?.message || "User deleted successfully"
+        });
+        if (isDetailsOpen) {
+          setIsDetailsOpen(false);
+          setDataDetails(null);
+        }
         await loadUser();
       } else {
         notification.error({
           message: "Delete User",
-          description: "User deleted failed"
+          description: response?.data?.message || "Xóa người dùng thất bại. Vui lòng thử lại."
         });
       }
     } catch (error) {
+      console.error('Delete user error:', error);
+      console.error('Error response:', error?.response);
       notification.error({
         message: "Delete User",
-        description: error?.response?.data?.message || "User deleted failed"
+        description: error?.response?.data?.message || "Xóa người dùng thất bại. Vui lòng thử lại."
       });
-      console.log(error);
     }
   }
-  
+
   const columns = [
     {
       title: 'STT',
@@ -86,11 +95,11 @@ const UserTable = ({ data, loadUser, current, pageSize, total, setCurrent, setPa
     }
   ];
   const handleChangePage = (pagination, filters, sorter, extra) => {
-    if(pagination && pagination.current && pagination.pageSize){
-      if(+pagination.current !== +current){
+    if (pagination && pagination.current && pagination.pageSize) {
+      if (+pagination.current !== +current) {
         setCurrent(+pagination.current);
       }
-      if(+pagination.pageSize !== +pageSize){
+      if (+pagination.pageSize !== +pageSize) {
         setPageSize(+pagination.pageSize);
       }
     }

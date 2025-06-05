@@ -1,41 +1,76 @@
 import { Button, Form, Input, InputNumber, Modal, notification, Select } from "antd";
 import { useEffect, useState } from "react";
-import { addBookAPI, updateBookAPI, updateBookImageAPI } from "../../services/api-service";
+import { addBookAPI, updateBookAPI, updateBookImageAPI, getAllCategoriesAPI, createCategoryAPI } from "../../services/api-service";
 
 const { Option } = Select;
 
-const BookForm = ({ isModalOpen, setIsModalOpen, bookData, setBookData, loadBooks }) => {
+const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefreshTrigger }) => {
     const [form] = Form.useForm();
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [newCategories, setNewCategories] = useState([]);
 
     useEffect(() => {
-        if (bookData && isModalOpen) {
-            form.setFieldsValue({
-                id: bookData.id,
-                title: bookData.mainText,
-                author: bookData.author,
-                price: bookData.price,
-                sold: bookData.sold,
-                quantity: bookData.quantity,
-                category: bookData.category,
-                image: bookData.image
-            });
-            setPreview(bookData.image?.thumbnail || null);
-        } else {
-            form.resetFields();
-            setPreview(null);
+        loadCategories();
+        if (isModalOpen) {
+            if (bookData) {
+                form.setFieldsValue({
+                    id: bookData.id,
+                    title: bookData.mainText,
+                    author: bookData.author,
+                    price: bookData.price,
+                    quantity: bookData.quantity,
+                    category: bookData.category ? [bookData.category] : []
+                });
+                setPreview(bookData.image?.medium || bookData.image?.original || bookData.image?.thumbnail);
+            } else {
+                form.resetFields();
+                setPreview(null);
+            }
         }
-        setFile(null);
-    }, [bookData, isModalOpen, form]);
+    }, [isModalOpen, bookData, form]);
+
+    const loadCategories = async () => {
+        try {
+            const response = await getAllCategoriesAPI();
+            if (response?.data) {
+                const categoriesData = Array.isArray(response.data)
+                    ? response.data
+                    : Array.isArray(response.data.result)
+                        ? response.data.result
+                        : [];
+
+                const validCategories = categoriesData
+                    .filter(cat => cat && cat.id && cat.name)
+                    .map(cat => ({
+                        id: cat.id,
+                        name: cat.name,
+                        description: cat.description || ''
+                    }));
+
+                setCategories(validCategories);
+            } else {
+                setCategories([]);
+                console.warn('No categories data received from API');
+            }
+        } catch (error) {
+            console.error("Error loading categories:", error);
+            setCategories([]);
+            notification.error({
+                message: "Lỗi",
+                description: "Không thể tải danh sách thể loại. Vui lòng thử lại."
+            });
+        }
+    };
 
     const handleModalClose = () => {
         form.resetFields();
         setIsModalOpen(false);
-        setBookData(null);
         setFile(null);
         setPreview(null);
+        setNewCategories([]);
     };
 
     const handleFileChange = (e) => {
@@ -48,72 +83,176 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, setBookData, loadBook
         }
     };
 
+    const handleCategoryChange = (value) => {
+        const newCats = value.filter(cat => {
+            if (typeof cat === 'string' && !categories.some(c => c.name.toLowerCase() === cat.toLowerCase())) {
+                return true;
+            }
+            return false;
+        });
+        setNewCategories(newCats);
+    };
+
+    const createNewCategories = async (categoryNames) => {
+        const createdCategories = [];
+        for (const name of categoryNames) {
+            try {
+                const response = await createCategoryAPI({
+                    name: String(name).trim(),
+                    description: `Danh mục ${String(name).trim()}`
+                });
+                if (response?.data) {
+                    createdCategories.push({
+                        id: response.data.id,
+                        name: response.data.name
+                    });
+                }
+            } catch (error) {
+                console.error(`Error creating category ${name}:`, error);
+                notification.error({
+                    message: "Lỗi",
+                    description: `Không thể tạo danh mục "${name}". Vui lòng thử lại.`
+                });
+            }
+        }
+        return createdCategories;
+    };
+
     const onFinish = async (values) => {
         setLoading(true);
         try {
-            if (!bookData) {
-                const book = {
-                    title: values.title,
-                    author: values.author,
-                    price: values.price,
-                    sold: values.sold || 0,
-                    quantity: values.quantity,
-                    category: values.category,
-                    file: file
-                };
-                const response = await addBookAPI(book);
-                if (response.data && response.statusCode === 201) {
-                    notification.success({ message: "Thành công", description: "Thêm sách thành công!" });
-                    await loadBooks();
+            console.log('Starting form submission with values:', values);
+            console.log('Current bookData from props:', bookData);
+
+            let categoryId = '';
+            if (values.category && values.category.length > 0) {
+                const firstCategory = values.category[0];
+                console.log('Selected category:', firstCategory);
+                console.log('Category type:', typeof firstCategory);
+
+                if (typeof firstCategory === 'string' && !firstCategory.includes('-')) {
+                    // Nếu là category mới, tạo category trước
+                    try {
+                        console.log('Creating new category:', firstCategory.trim());
+                        const categoryResponse = await createCategoryAPI(firstCategory.trim());
+                        console.log('Category creation response:', categoryResponse);
+                        if (categoryResponse?.data) {
+                            categoryId = categoryResponse.data.id;
+                            console.log('New category created with id:', categoryId);
+                        }
+                    } catch (error) {
+                        console.error('Error creating category:', error);
+                        notification.error({
+                            message: "Lỗi",
+                            description: "Không thể tạo thể loại mới. Vui lòng thử lại."
+                        });
+                        return;
+                    }
                 } else {
-                    notification.error({ message: "Thất bại", description: "Thêm sách thất bại!" });
+                    // Nếu là UUID hoặc object, sử dụng trực tiếp
+                    categoryId = typeof firstCategory === 'object' ? firstCategory.id : firstCategory;
+                    console.log('Using existing category id:', categoryId);
                 }
-                handleModalClose();
+            }
+
+            if (!categoryId) {
+                notification.error({
+                    message: "Lỗi",
+                    description: "Vui lòng chọn hoặc nhập ít nhất một thể loại!"
+                });
                 return;
             }
-            const book = {
-                id: values.id,
-                title: values.title,
+
+            // Tạo book data theo đúng format API yêu cầu
+            const newBookData = {
+                id: values.id || bookData?.id,
+                mainText: values.title,
                 author: values.author,
                 price: values.price,
                 sold: values.sold || 0,
                 quantity: values.quantity,
-                category: values.category,
-                file: file
+                categoryId: categoryId
             };
-            const response = await updateBookAPI(book);
-            if (response.data && response.statusCode === 200) {
-                notification.success({ message: "Thành công", description: "Cập nhật sách thành công!" });
-                await loadBooks();
+
+            console.log('Final book data to submit:', newBookData);
+            console.log('Is this an update?', !!newBookData.id);
+
+            let response;
+            // Kiểm tra xem có phải đang edit sách không
+            if (newBookData.id) {
+                // Update sách
+                console.log('Updating book with id:', newBookData.id);
+                response = await handleUpdateBook(newBookData, file);
+            } else {
+                // Thêm sách mới
+                console.log('Adding new book');
+                response = await handleAddBook(newBookData, file);
+            }
+
+            console.log('API Response:', response);
+
+            if (response?.data && (response.statusCode === 200 || response.statusCode === 201)) {
+                notification.success({
+                    message: "Thành công",
+                    description: newBookData.id ? "Cập nhật sách thành công!" : "Thêm sách thành công!"
+                });
+                if (typeof setRefreshTrigger === 'function') {
+                    setRefreshTrigger(prev => prev + 1);
+                } else if (typeof onSuccess === 'function') {
+                    onSuccess();
+                }
                 handleModalClose();
             } else {
-                notification.error({ message: "Thất bại", description: "Cập nhật sách thất bại!" });
+                notification.error({
+                    message: "Thất bại",
+                    description: response?.data?.message || (newBookData.id ? "Cập nhật sách thất bại!" : "Thêm sách thất bại!")
+                });
             }
         } catch (error) {
+            console.error('Error saving book:', error);
             notification.error({
-                message: bookData ? "Cập nhật sách thất bại" : "Thêm sách thất bại",
+                message: newBookData.id ? "Cập nhật sách thất bại" : "Thêm sách thất bại",
                 description: error?.response?.data?.message || error?.message || "Đã xảy ra lỗi!"
             });
-            handleModalClose();
         } finally {
             setLoading(false);
         }
     };
 
+    // Hàm xử lý thêm sách mới
+    const handleAddBook = async (bookData, file) => {
+        console.log('handleAddBook called with:', { bookData, file });
+        return await addBookAPI(bookData, file);
+    };
+
+    // Hàm xử lý cập nhật sách
+    const handleUpdateBook = async (bookData, file) => {
+        console.log('handleUpdateBook called with:', { bookData, file });
+        if (!bookData.id) {
+            throw new Error("Không tìm thấy ID của sách cần cập nhật");
+        }
+        return await updateBookAPI(bookData.id, bookData, file);
+    };
+
     return (
         <Modal
-            title={bookData ? "Update Book" : "Create Book"}
+            title={bookData ? "Sửa sách" : "Thêm sách mới"}
             open={isModalOpen}
             onCancel={handleModalClose}
             footer={null}
-            destroyOnHidden
-            width={600}
-            confirmLoading={loading}
+            width={720}
         >
             <Form
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
+                initialValues={bookData ? {
+                    title: bookData.mainText,
+                    author: bookData.author,
+                    price: bookData.price,
+                    quantity: bookData.quantity,
+                    category: bookData.category ? [bookData.category] : []
+                } : undefined}
             >
                 {bookData && (
                     <Form.Item name="id" label="ID">
@@ -176,20 +315,33 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, setBookData, loadBook
                 <Form.Item
                     name="category"
                     label="Thể loại"
-                    rules={[{ required: true, message: "Vui lòng chọn thể loại!" }]}
+                    rules={[{ required: true, message: "Vui lòng chọn hoặc nhập thể loại!" }]}
+                    extra="Chọn một thể loại có sẵn hoặc nhập thể loại mới"
                 >
                     <Select
-                        mode="multiple"
-                        placeholder="Chọn thể loại"
+                        mode="tags"
+                        placeholder="Chọn thể loại có sẵn hoặc nhập thể loại mới"
                         allowClear
+                        onChange={handleCategoryChange}
+                        style={{ width: '100%' }}
+                        loading={loading}
+                        maxTagCount={1}
+                        notFoundContent={loading ? "Đang tải..." : "Không tìm thấy thể loại"}
+                        filterOption={(input, option) => {
+                            const optionLabel = option?.label ?? '';
+                            const optionValue = option?.value ?? '';
+                            return (
+                                optionLabel.toLowerCase().includes(input.toLowerCase()) ||
+                                optionValue.toLowerCase().includes(input.toLowerCase())
+                            );
+                        }}
+                        optionLabelProp="label"
                     >
-                        <Option value="Sport">Sport</Option>
-                        <Option value="Science">Science</Option>
-                        <Option value="Novel">Novel</Option>
-                        <Option value="History">History</Option>
-                        <Option value="Children">Children</Option>
-                        <Option value="Education">Education</Option>
-                        {/* Thêm các thể loại khác nếu cần */}
+                        {Array.isArray(categories) && categories.map(cat => (
+                            <Option key={cat.id} value={cat.id} label={cat.name}>
+                                {cat.name}
+                            </Option>
+                        ))}
                     </Select>
                 </Form.Item>
                 <Form.Item label="Ảnh sách">
@@ -223,10 +375,10 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, setBookData, loadBook
                     marginTop: 24
                 }}>
                     <Button onClick={handleModalClose} disabled={loading}>
-                        Cancel
+                        Hủy
                     </Button>
                     <Button type="primary" htmlType="submit" loading={loading}>
-                        {bookData ? "Update" : "Create"}
+                        {bookData ? "Cập nhật" : "Thêm mới"}
                     </Button>
                 </div>
             </Form>

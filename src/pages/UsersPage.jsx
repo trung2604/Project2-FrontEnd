@@ -12,16 +12,19 @@ const UsersPage = () => {
     loadUser();
   }, [current, pageSize]);
   const loadUser = async () => {
+    console.log('Loading users with params:', { current, pageSize });
     const response = await getAllUserAPI(current, pageSize);
+    console.log('Load users response:', response);
+    console.log('Response data:', response?.data);
     if (response.data) {
+      console.log('Setting user data:', response.data.result);
       setData(response.data.result);
       setTotal(response.data.meta.total);
       setCurrent(response.data.meta.current);
       setPageSize(response.data.meta.pageSize);
-      console.log(response.data.meta);
     }
   }
-  return(
+  return (
     <div>
       <UserForm loadUser={loadUser} isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} />
       <UserTable data={data}

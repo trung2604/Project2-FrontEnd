@@ -65,23 +65,43 @@ const CheckoutPage = () => {
     const handleOrder = async () => {
         const { fullName, email, phone, address, payment } = formData;
 
-        // Validate form
-        if (!fullName || !email || !phone || !address || !payment) {
-            message.error("Vui lòng điền đầy đủ thông tin!");
+        // Validate họ tên
+        if (!fullName.trim()) {
+            message.error("Vui lòng nhập họ và tên!");
             return;
         }
 
-        // Validate email format
+        // Validate email
+        if (!email.trim()) {
+            message.error("Vui lòng nhập email!");
+            return;
+        }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             message.error("Email không hợp lệ!");
             return;
         }
 
-        // Validate phone format (10-11 digits)
+        // Validate số điện thoại
+        if (!phone.trim()) {
+            message.error("Vui lòng nhập số điện thoại!");
+            return;
+        }
         const phoneRegex = /^[0-9]{10,11}$/;
         if (!phoneRegex.test(phone)) {
-            message.error("Số điện thoại không hợp lệ!");
+            message.error("Số điện thoại không hợp lệ! (10-11 số)");
+            return;
+        }
+
+        // Validate địa chỉ
+        if (!address.trim()) {
+            message.error("Vui lòng nhập địa chỉ nhận hàng!");
+            return;
+        }
+
+        // Validate phương thức thanh toán
+        if (!payment) {
+            message.error("Vui lòng chọn phương thức thanh toán!");
             return;
         }
 
@@ -96,7 +116,7 @@ const CheckoutPage = () => {
                 paymentMethod: payment === 'bank' ? 'BANKING' : 'COD',
                 items: cart.map(item => ({
                     bookId: item.bookId || item.id,
-                    quantity: item.quantity
+                    quantity: String(item.quantity)
                 }))
             };
 
@@ -105,7 +125,7 @@ const CheckoutPage = () => {
             console.log('CreateOrder response:', response);
 
             // Kiểm tra response có id là thành công
-            if (response?.data && response.status === 201) {
+            if (response?.data && response.success === true) {
                 message.success("Đặt hàng thành công!");
                 await clearCart();
 
@@ -140,7 +160,18 @@ const CheckoutPage = () => {
     };
 
     const columns = [
-        { title: "Ảnh", dataIndex: "bookImage", render: (bookImage) => <img src={bookImage} alt="Ảnh sách" style={{ width: 50, height: 50 }} /> },
+        {
+            title: "Ảnh",
+            dataIndex: "bookImage",
+            render: (img) => {
+                const src = img?.medium || img?.original || img?.thumbnail || "";
+                return src ? (
+                    <img src={src} alt="Ảnh sách" style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 4 }} />
+                ) : (
+                    <span>Không có ảnh</span>
+                );
+            }
+        },
         { title: "Tên sách", dataIndex: "bookTitle" },
         { title: "Số lượng", dataIndex: "quantity" },
         { title: "Giá", dataIndex: "price", render: (p) => p.toLocaleString() + " đ" },

@@ -118,31 +118,30 @@ const Header = () => {
 
     if (user?.role === 'ROLE_ADMIN') {
       items.push({
-        key: 'admin-management',
+        key: 'categories',
         icon: <AppstoreOutlined />,
-        label: 'Quản lý',
-        children: [
-          {
-            key: 'users',
-            icon: <UserOutlined />,
-            label: 'Quản lý người dùng',
-            onClick: () => navigate('/users')
-          },
-          {
-            key: 'books',
-            icon: <BookOutlined />,
-            label: 'Quản lý sách',
-            onClick: () => navigate('/books')
-          },
-          {
-            key: 'categories',
-            icon: <AppstoreOutlined />,
-            label: 'Quản lý danh mục',
-            onClick: () => navigate('/categories')
-          }
-        ]
+        label: 'Quản lý danh mục',
+        onClick: () => navigate('/categories')
+      });
+      items.push({
+        key: 'books',
+        icon: <BookOutlined />,
+        label: 'Quản lý sách',
+        onClick: () => navigate('/books')
+      });
+      items.push({
+        key: 'users',
+        icon: <UserOutlined />,
+        label: 'Quản lý người dùng',
+        onClick: () => navigate('/users')
       });
     } else {
+      items.push({
+        key: 'categories',
+        icon: <AppstoreOutlined />,
+        label: 'Danh mục',
+        onClick: () => navigate('/categories')
+      });
       items.push({
         key: 'books',
         icon: <BookOutlined />,
