@@ -1,7 +1,7 @@
 import { Button, Form, Input, Modal, notification, Select } from "antd";
 import "./user-form.css";
 import { useEffect } from "react";
-import { createUserAPI, updateUserAPI } from "../../services/api-service";
+import { addUserAPI, updateUserAPI } from "../../services/api-service";
 
 const { Option } = Select;
 
@@ -15,7 +15,7 @@ const UserForm = ({ isModalOpen, setIsModalOpen, userData, loadUser }) => {
             email: '',
             password: '',
             phone: '',
-            role: 'USER',
+            role: 'ROLE_USER',
             active: true
         });
         setIsModalOpen(false);
@@ -52,14 +52,16 @@ const UserForm = ({ isModalOpen, setIsModalOpen, userData, loadUser }) => {
                 }
             } else {
                 // Create user
-                response = await createUserAPI(
-                    values.fullName,
-                    values.email,
-                    values.password,
-                    values.phone,
-                    values.role
-                );
-                if (response.status === 201) {
+                const userData = {
+                    fullName: values.fullName,
+                    email: values.email,
+                    password: values.password,
+                    phoneNumber: values.phone,
+                    role: values.role,
+                    isActive: values.active
+                };
+                response = await addUserAPI(userData);
+                if (response.success === true) {
                     notification.success({
                         message: "Create User",
                         description: "User created successfully"
@@ -173,9 +175,8 @@ const UserForm = ({ isModalOpen, setIsModalOpen, userData, loadUser }) => {
                         rules={[{ required: true, message: "Please select a role!" }]}
                     >
                         <Select placeholder="Select role">
-                            <Option value="ROLE_USER">User</Option>
+                            <Option value="ROLE_USER">ROLE_USER</Option>
                             <Option value="ROLE_ADMIN">ROLE_ADMIN</Option>
-                            <Option value="ROLE_SHIPPER">ROLE_SHIPPER</Option>
                         </Select>
                     </Form.Item>
 

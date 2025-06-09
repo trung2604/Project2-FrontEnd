@@ -37,6 +37,12 @@ axiosInstance.interceptors.request.use(function (config) {
   } else {
     console.warn('No access token found in localStorage');
   }
+
+  // Nếu là FormData thì xóa Content-Type để axios tự set
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+    console.log('Đã xóa Content-Type cho FormData, headers còn lại:', config.headers);
+  }
   return config;
 }, function (error) {
   // Do something with request error

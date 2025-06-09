@@ -10,17 +10,30 @@ const createUserAPI = (fullName, email, password, phoneNumber) => {
     });
 }
 
+const addUserAPI = (userData) => {
+    const URL_BACKEND = "/api/bookStore/user";
+    return axios.post(`${URL_BACKEND}/create`, {
+        fullName: userData.fullName,
+        email: userData.email,
+        password: userData.password,
+        phoneNumber: userData.phoneNumber,
+        role: userData.role,
+        isActive: userData.isActive
+    });
+}
+
 const getAllUserAPI = (current, pageSize) => {
     const URL_BACKEND = `/api/bookStore/user/paged?current=${current}&pageSize=${pageSize}`;
     return axios.get(URL_BACKEND);
 }
 
-const updateUserAPI = (id, fullName, phone) => {
+const updateUserAPI = (id, fullName, phone, email) => {
     const URL_BACKEND = "/api/bookStore/user/update";
     return axios.put(URL_BACKEND, {
         id,
         fullName,
-        phone
+        phone,
+        email
     });
 }
 
@@ -74,47 +87,60 @@ const getAllBookAPI = (current, pageSize) => {
     return axios.get(URL_BACKEND);
 }
 
-const addBookAPI = (book) => {
+const addBookAPI = async (book) => {
     const URL_BACKEND = "/api/bookStore/book/add";
-    const formData = new FormData();
-    const bookData = {
-        mainText: book.title,
-        author: book.author,
-        price: book.price,
-        sold: book.sold || 0,
-        quantity: book.quantity,
-        categoryName: book.categoryName
-    };
-    formData.append('book', new Blob([JSON.stringify(bookData)], { type: 'application/json' }));
-    if (book.file) {
-        formData.append('imageFile', book.file);
-    }
-    return axios.post(URL_BACKEND, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
+
+    try {
+        // Tạo FormData object
+        const formData = new FormData();
+
+        // 1. Thêm các trường dữ liệu sách
+        formData.append('mainText', book.mainText);
+        formData.append('author', book.author);
+        formData.append('price', book.price);
+        formData.append('sold', book.sold || 0);
+        formData.append('quantity', book.quantity);
+        formData.append('categoryName', book.categoryName);
+
+        // 2. Thêm file ảnh (nếu có)
+        if (book.file && book.file instanceof File) {
+            formData.append('imageFile', book.file);
         }
-    });
+
+        // Log để debug
+        console.log('FormData entries:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + (pair[1] instanceof File ? pair[1].name : pair[1]));
+        }
+
+        // Gửi request và trả về response trực tiếp
+        return await axios.post(URL_BACKEND, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    } catch (error) {
+        console.error('Error in addBookAPI:', error);
+        if (error.response) {
+            console.error('Response data:', error.response.data);
+            console.error('Response headers:', error.response.headers);
+        }
+        throw error;
+    }
 };
 
-const updateBookAPI = (id, bookData, file = null) => {
-    const URL_BACKEND = `/api/bookStore/book/${id}`;
+const updateBookAPI = async (id, book, file) => {
+    const URL_BACKEND = "/api/bookStore/book/update";
     const formData = new FormData();
-
-    // Thêm book data vào formData
-    formData.append('bookData', new Blob([JSON.stringify(bookData)], {
-        type: 'application/json'
-    }));
-
-    // Thêm file nếu có
-    if (file) {
-        formData.append('imageFile', file);
-    }
-
-    return axios.put(URL_BACKEND, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
+    formData.append('id', id);
+    if (book.mainText) formData.append('mainText', book.mainText);
+    if (book.author) formData.append('author', book.author);
+    if (book.price !== undefined) formData.append('price', book.price);
+    if (book.sold !== undefined) formData.append('sold', book.sold);
+    if (book.quantity !== undefined) formData.append('quantity', book.quantity);
+    if (book.categoryName) formData.append('categoryName', book.categoryName);
+    if (file) formData.append('imageFile', file);
+    return axios.put(URL_BACKEND, formData);
 };
 
 const deleteBookAPI = (id) => {
@@ -196,6 +222,10 @@ const createCategoryAPI = (data) => {
     return axios.post(URL_BACKEND, {
         name: data.name,
         description: data.description
+    }, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
     });
 };
 
@@ -272,6 +302,7 @@ export const deliveredOrderAPI = async (orderId) => {
 
 export {
     createUserAPI,
+    addUserAPI,
     getAllUserAPI,
     updateUserAPI,
     deleteUserAPI,

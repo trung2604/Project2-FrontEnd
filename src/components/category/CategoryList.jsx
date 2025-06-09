@@ -51,20 +51,20 @@ const CategoryList = () => {
                 page: current - 1,
                 size: pageSize
             });
-            console.log('Full API response:', res);
-            console.log('res.data:', res.data);
-            console.log('res.data.result:', res.data.result);
-            if (res && res.data && Array.isArray(res.data.result)) {
-                setCategories(res.data.result);
-                setTotal(res.data.totalElements || 0);
-                console.log('Set categories:', res.data.result);
+            const apiData = res.data;
+            if (apiData) {
+                const categoriesData = Array.isArray(apiData.result)
+                    ? apiData.result
+                    : [];
+                setCategories(categoriesData);
+                setTotal(apiData.meta?.total || 0);
             } else {
                 setCategories([]);
                 setTotal(0);
-                console.log('Set categories: [] (fallback)');
             }
         } catch (error) {
-            console.error('Error loading categories:', error);
+            setCategories([]);
+            setTotal(0);
             message.error(error?.response?.message || 'Lỗi khi tải danh sách danh mục');
         } finally {
             setLoading(false);
@@ -73,8 +73,8 @@ const CategoryList = () => {
 
     const handleChangePage = (pagination) => {
         if (pagination && pagination.current && pagination.pageSize) {
-            if (+pagination.current !== +current) setCurrent(+pagination.current);
-            if (+pagination.pageSize !== +pageSize) setPageSize(+pagination.pageSize);
+            setCurrent(pagination.current);
+            setPageSize(pagination.pageSize);
         }
     };
 

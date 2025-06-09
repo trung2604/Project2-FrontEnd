@@ -1,10 +1,11 @@
 import { Button, Form, Input, InputNumber, Modal, notification, Select } from "antd";
 import { useEffect, useState } from "react";
 import { addBookAPI, updateBookAPI, updateBookImageAPI, getAllCategoriesAPI, createCategoryAPI } from "../../services/api-service";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
-const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefreshTrigger }) => {
+const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefreshTrigger, loadBooks }) => {
     const [form] = Form.useForm();
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
@@ -13,28 +14,33 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefresh
     const [newCategories, setNewCategories] = useState([]);
 
     useEffect(() => {
-        loadCategories();
         if (isModalOpen) {
-            if (bookData) {
-                form.setFieldsValue({
-                    id: bookData.id,
-                    title: bookData.mainText,
-                    author: bookData.author,
-                    price: bookData.price,
-                    quantity: bookData.quantity,
-                    category: bookData.category ? [bookData.category] : []
-                });
-                setPreview(bookData.image?.medium || bookData.image?.original || bookData.image?.thumbnail);
-            } else {
-                form.resetFields();
-                setPreview(null);
-            }
+            loadCategories();
+        }
+        if (isModalOpen && bookData) {
+            form.setFieldsValue({
+                id: bookData.id,
+                mainText: bookData.mainText,
+                author: bookData.author,
+                price: bookData.price,
+                sold: bookData.sold,
+                quantity: bookData.quantity,
+                category: bookData.category
+                    ? (Array.isArray(bookData.category)
+                        ? [bookData.category[0]?.id]
+                        : [bookData.category.id])
+                    : [],
+            });
+            setPreview(bookData.image?.medium || bookData.image?.original || bookData.image?.thumbnail);
+        } else if (!isModalOpen) {
+            form.resetFields();
+            setPreview(null);
         }
     }, [isModalOpen, bookData, form]);
 
     const loadCategories = async () => {
         try {
-            const response = await getAllCategoriesAPI();
+            const response = await getAllCategoriesAPI({ size: 100 });
             if (response?.data) {
                 const categoriesData = Array.isArray(response.data)
                     ? response.data
@@ -74,12 +80,30 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefresh
     };
 
     const handleFileChange = (e) => {
-        const f = e.target.files[0];
-        setFile(f);
-        if (f) {
-            setPreview(URL.createObjectURL(f));
-        } else {
-            setPreview(null);
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            // Kiểm tra loại file
+            if (!selectedFile.type.startsWith('image/')) {
+                notification.error({
+                    message: "Lỗi",
+                    description: "Vui lòng chọn file ảnh!"
+                });
+                return;
+            }
+            // Kiểm tra kích thước file (ví dụ: max 5MB)
+            if (selectedFile.size > 5 * 1024 * 1024) {
+                notification.error({
+                    message: "Lỗi",
+                    description: "Kích thước file không được vượt quá 5MB!"
+                });
+                return;
+            }
+            setFile(selectedFile);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreview(reader.result);
+            };
+            reader.readAsDataURL(selectedFile);
         }
     };
 
@@ -121,98 +145,68 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefresh
     const onFinish = async (values) => {
         setLoading(true);
         try {
-            console.log('Starting form submission with values:', values);
-            console.log('Current bookData from props:', bookData);
+            // Debug logging
+            console.log('onFinish called with values:', values);
+            console.log('Current bookData:', bookData);
 
-            let categoryId = '';
-            if (values.category && values.category.length > 0) {
-                const firstCategory = values.category[0];
-                console.log('Selected category:', firstCategory);
-                console.log('Category type:', typeof firstCategory);
+            // Lấy id thể loại từ values.category (là mảng id)
+            const categoryId = Array.isArray(values.category) ? values.category[0] : values.category;
+            // Tìm object thể loại tương ứng
+            const selectedCategory = categories.find(cat => cat.id === categoryId);
 
-                if (typeof firstCategory === 'string' && !firstCategory.includes('-')) {
-                    // Nếu là category mới, tạo category trước
-                    try {
-                        console.log('Creating new category:', firstCategory.trim());
-                        const categoryResponse = await createCategoryAPI(firstCategory.trim());
-                        console.log('Category creation response:', categoryResponse);
-                        if (categoryResponse?.data) {
-                            categoryId = categoryResponse.data.id;
-                            console.log('New category created with id:', categoryId);
-                        }
-                    } catch (error) {
-                        console.error('Error creating category:', error);
-                        notification.error({
-                            message: "Lỗi",
-                            description: "Không thể tạo thể loại mới. Vui lòng thử lại."
-                        });
-                        return;
-                    }
-                } else {
-                    // Nếu là UUID hoặc object, sử dụng trực tiếp
-                    categoryId = typeof firstCategory === 'object' ? firstCategory.id : firstCategory;
-                    console.log('Using existing category id:', categoryId);
-                }
-            }
+            // Tạo dữ liệu sách để gửi lên server, chỉ lấy trường có giá trị
+            const newBookData = {};
+            if (values.title) newBookData.mainText = values.title;
+            if (values.author) newBookData.author = values.author;
+            if (values.price !== undefined) newBookData.price = values.price;
+            if (values.quantity !== undefined) newBookData.quantity = values.quantity;
+            if (values.sold !== undefined) newBookData.sold = values.sold;
+            if (selectedCategory && selectedCategory.name) newBookData.categoryName = selectedCategory.name;
 
-            if (!categoryId) {
-                notification.error({
-                    message: "Lỗi",
-                    description: "Vui lòng chọn hoặc nhập ít nhất một thể loại!"
-                });
-                return;
-            }
-
-            // Tạo book data theo đúng format API yêu cầu
-            const newBookData = {
-                id: values.id || bookData?.id,
-                mainText: values.title,
-                author: values.author,
-                price: values.price,
-                sold: values.sold || 0,
-                quantity: values.quantity,
-                categoryId: categoryId
-            };
-
-            console.log('Final book data to submit:', newBookData);
-            console.log('Is this an update?', !!newBookData.id);
+            // Log dữ liệu gửi lên để debug
+            console.log('Preparing to save book with data:', {
+                isUpdate: !!bookData?.id,
+                bookId: bookData?.id,
+                newBookData,
+                file
+            });
 
             let response;
-            // Kiểm tra xem có phải đang edit sách không
-            if (newBookData.id) {
+            if (bookData && bookData.id) {
                 // Update sách
-                console.log('Updating book with id:', newBookData.id);
-                response = await handleUpdateBook(newBookData, file);
+                response = await updateBookAPI(
+                    bookData.id,
+                    newBookData,
+                    file
+                );
             } else {
                 // Thêm sách mới
-                console.log('Adding new book');
-                response = await handleAddBook(newBookData, file);
+                response = await addBookAPI({
+                    ...newBookData,
+                    file: file
+                });
             }
 
-            console.log('API Response:', response);
-
-            if (response?.data && (response.statusCode === 200 || response.statusCode === 201)) {
+            if (response?.success) {
                 notification.success({
-                    message: "Thành công",
-                    description: newBookData.id ? "Cập nhật sách thành công!" : "Thêm sách thành công!"
+                    message: bookData?.id ? "Cập nhật sách" : "Thêm sách",
+                    description: response.message || "Thao tác thành công"
                 });
-                if (typeof setRefreshTrigger === 'function') {
-                    setRefreshTrigger(prev => prev + 1);
-                } else if (typeof onSuccess === 'function') {
-                    onSuccess();
-                }
                 handleModalClose();
+                if (onSuccess) onSuccess();
+                if (setRefreshTrigger) setRefreshTrigger(prev => prev + 1);
+                if (loadBooks) await loadBooks();
             } else {
                 notification.error({
-                    message: "Thất bại",
-                    description: response?.data?.message || (newBookData.id ? "Cập nhật sách thất bại!" : "Thêm sách thất bại!")
+                    message: "Lỗi",
+                    description: response?.message || "Thao tác thất bại"
                 });
             }
         } catch (error) {
             console.error('Error saving book:', error);
             notification.error({
-                message: newBookData.id ? "Cập nhật sách thất bại" : "Thêm sách thất bại",
-                description: error?.response?.data?.message || error?.message || "Đã xảy ra lỗi!"
+                message: "Lỗi",
+                description: error?.message || "Failed to save book"
             });
         } finally {
             setLoading(false);
@@ -232,6 +226,23 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefresh
             throw new Error("Không tìm thấy ID của sách cần cập nhật");
         }
         return await updateBookAPI(bookData.id, bookData, file);
+    };
+
+    const handleEdit = (book) => {
+        console.log('Editing book:', book);
+        setIsModalOpen(true);
+        const editBookData = {
+            id: book.id,
+            mainText: book.mainText,
+            author: book.author,
+            price: book.price,
+            sold: book.sold,
+            quantity: book.quantity,
+            category: book.category,
+            image: book.image
+        };
+        console.log('Setting bookData for edit:', editBookData);
+        setBookData(editBookData);
     };
 
     return (
@@ -315,58 +326,69 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefresh
                 <Form.Item
                     name="category"
                     label="Thể loại"
-                    rules={[{ required: true, message: "Vui lòng chọn hoặc nhập thể loại!" }]}
-                    extra="Chọn một thể loại có sẵn hoặc nhập thể loại mới"
+                    rules={[{ required: true, message: "Vui lòng chọn thể loại!" }]}
                 >
                     <Select
-                        mode="tags"
-                        placeholder="Chọn thể loại có sẵn hoặc nhập thể loại mới"
-                        allowClear
-                        onChange={handleCategoryChange}
-                        style={{ width: '100%' }}
+                        placeholder="Chọn thể loại"
                         loading={loading}
-                        maxTagCount={1}
-                        notFoundContent={loading ? "Đang tải..." : "Không tìm thấy thể loại"}
-                        filterOption={(input, option) => {
-                            const optionLabel = option?.label ?? '';
-                            const optionValue = option?.value ?? '';
-                            return (
-                                optionLabel.toLowerCase().includes(input.toLowerCase()) ||
-                                optionValue.toLowerCase().includes(input.toLowerCase())
-                            );
-                        }}
-                        optionLabelProp="label"
+                        disabled={loading}
+                        showSearch
+                        optionFilterProp="children"
+                        filterOption={(input, option) =>
+                            (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                        }
                     >
-                        {Array.isArray(categories) && categories.map(cat => (
-                            <Option key={cat.id} value={cat.id} label={cat.name}>
+                        {categories.map(cat => (
+                            <Option key={cat.id} value={cat.id}>
                                 {cat.name}
                             </Option>
                         ))}
                     </Select>
                 </Form.Item>
-                <Form.Item label="Ảnh sách">
-                    <input type="file" accept="image/*" onChange={handleFileChange} />
-                    {preview && (
+                <Form.Item
+                    name="image"
+                    label="Ảnh sách"
+                    valuePropName="fileList"
+                    getValueFromEvent={(e) => {
+                        if (Array.isArray(e)) {
+                            return e;
+                        }
+                        return e?.fileList;
+                    }}
+                >
+                    <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                        id="image-upload"
+                    />
+                    <label htmlFor="image-upload" style={{ cursor: 'pointer' }}>
                         <div style={{
-                            marginTop: 12,
-                            display: 'flex',
-                            justifyContent: 'center'
+                            border: '1px dashed #d9d9d9',
+                            borderRadius: '8px',
+                            padding: '20px',
+                            textAlign: 'center',
+                            background: preview ? 'none' : '#fafafa'
                         }}>
-                            <img
-                                src={preview}
-                                alt="Preview"
-                                style={{
-                                    width: 120,
-                                    height: 120,
-                                    borderRadius: 12,
-                                    objectFit: 'cover',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                                    border: '1.5px solid #e6e6e6',
-                                    transition: 'box-shadow 0.2s',
-                                }}
-                            />
+                            {preview ? (
+                                <img
+                                    src={preview}
+                                    alt="Preview"
+                                    style={{
+                                        maxWidth: '100%',
+                                        maxHeight: '200px',
+                                        objectFit: 'contain'
+                                    }}
+                                />
+                            ) : (
+                                <div>
+                                    <PlusOutlined style={{ fontSize: '24px', color: '#999' }} />
+                                    <div style={{ marginTop: '8px', color: '#666' }}>Click để chọn ảnh</div>
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </label>
                 </Form.Item>
                 <div style={{
                     display: 'flex',

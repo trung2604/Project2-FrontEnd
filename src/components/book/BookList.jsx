@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Button, Row, Col, message, Spin, Popconfirm, Empty } from "antd";
+import { Button, Row, Col, message, Spin, Popconfirm, Empty, Pagination } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { getAllBookAPI, deleteBookAPI, getAllCategoriesAPI } from "../../services/api-service";
 import { useCart } from "../context/cart-context.jsx";
@@ -44,7 +44,8 @@ const BookList = ({ data, loadBooks, current, pageSize, total, setCurrent, setPa
     };
 
     const handleEdit = (book) => {
-        console.log('Editing book:', book);
+        console.log('Book khi click edit từ BookList:', book);
+        console.log('Category của book từ BookList:', book.category);
         setIsModalOpen(true);
         const editBookData = {
             id: book.id,
@@ -53,10 +54,10 @@ const BookList = ({ data, loadBooks, current, pageSize, total, setCurrent, setPa
             price: book.price,
             sold: book.sold,
             quantity: book.quantity,
-            category: book.category ? [book.category.id] : [],
+            category: book.category,
             image: book.image
         };
-        console.log('Setting bookData for edit:', editBookData);
+        console.log('EditBookData từ BookList:', editBookData);
         setBookData(editBookData);
     };
 
@@ -128,6 +129,11 @@ const BookList = ({ data, loadBooks, current, pageSize, total, setCurrent, setPa
             return { ...book, category: found ? [found] : [] };
         }
         return { ...book, category: [] };
+    };
+
+    const handlePageChange = (page, pageSize) => {
+        setCurrent(page);
+        setPageSize(pageSize);
     };
 
     return (
@@ -243,6 +249,26 @@ const BookList = ({ data, loadBooks, current, pageSize, total, setCurrent, setPa
                             <Empty
                                 description="Chưa có sách nào"
                                 image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            />
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {data && data.length > 0 && (
+                        <div style={{
+                            marginTop: '32px',
+                            display: 'flex',
+                            justifyContent: 'center'
+                        }}>
+                            <Pagination
+                                current={current}
+                                pageSize={pageSize}
+                                total={total}
+                                onChange={handlePageChange}
+                                showSizeChanger
+                                showQuickJumper
+                                showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} sách`}
+                                pageSizeOptions={['5', '10', '20', '50']}
                             />
                         </div>
                     )}

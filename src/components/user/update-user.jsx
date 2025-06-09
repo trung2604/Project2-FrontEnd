@@ -12,7 +12,8 @@ const UpdateUser = ({ isModalUpdateOpen, setIsModalUpdateOpen, dataUpdate, setDa
             form.setFieldsValue({
                 id: dataUpdate.id,
                 fullName: dataUpdate.fullName,
-                phone: dataUpdate.phone
+                phone: dataUpdate.phone,
+                email: dataUpdate.email
             });
         }
     }, [dataUpdate, isModalUpdateOpen, form]);
@@ -25,7 +26,7 @@ const UpdateUser = ({ isModalUpdateOpen, setIsModalUpdateOpen, dataUpdate, setDa
 
     const onFinish = async (values) => {
         try {
-            const response = await updateUserAPI(values.id, values.fullName, values.phone);
+            const response = await updateUserAPI(values.id, values.fullName, values.phone, values.email);
             if (response?.success === true) {
                 notification.success({
                     message: "Update User",
@@ -78,6 +79,13 @@ const UpdateUser = ({ isModalUpdateOpen, setIsModalUpdateOpen, dataUpdate, setDa
                 <Form.Item
                     name="id"
                     label="ID"
+                >
+                    <Input disabled />
+                </Form.Item>
+
+                <Form.Item
+                    name="email"
+                    label="Email"
                 >
                     <Input disabled />
                 </Form.Item>
