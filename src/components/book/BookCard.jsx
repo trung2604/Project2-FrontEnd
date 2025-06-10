@@ -34,95 +34,71 @@ const BookCard = ({
         if (onClick) onClick(book);
     };
 
-    const renderAdminActions = () => (
-        <Space size="small" style={{ width: '100%', justifyContent: 'center' }}>
-            <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit?.(book);
-                }}
-                block
-            >
-                Sửa
-            </Button>
-            <Popconfirm
-                title="Bạn có chắc chắn muốn xóa sách này?"
-                onConfirm={() => onDelete?.(book)}
-                okText="Xóa"
-                cancelText="Hủy"
-            >
-                <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={e => e.stopPropagation()}
-                    block
-                >
-                    Xóa
-                </Button>
-            </Popconfirm>
-        </Space>
-    );
-
-    const renderUserActions = () => (
-        <Space direction="vertical" size="middle" style={{ width: '100%', marginBottom: 8, marginTop: 4 }}>
-            <Button
-                type="primary"
-                icon={<ShoppingCartOutlined style={{ fontSize: 16 }} />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onAddToCart?.(book, e);
-                }}
-                loading={loading}
-                block
-                style={{
-                    width: '100%',
-                    minWidth: 120,
-                    height: 42,
-                    fontSize: 13,
-                    padding: '0 4px',
-                    whiteSpace: 'nowrap',
-                    fontWeight: 600,
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 6
-                }}
-            >
-                Thêm vào giỏ
-            </Button>
-            <Button
-                type="primary"
-                danger
-                icon={<ThunderboltOutlined style={{ fontSize: 16 }} />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onBuyNow?.(book, e);
-                }}
-                loading={loading}
-                block
-                style={{
-                    width: '100%',
-                    minWidth: 120,
-                    height: 42,
-                    fontSize: 13,
-                    padding: '0 4px',
-                    whiteSpace: 'nowrap',
-                    fontWeight: 600,
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 6
-                }}
-            >
-                Mua ngay
-            </Button>
-        </Space>
+    const renderActions = () => (
+        <div className="book-card-actions">
+            {isAdmin ? (
+                <>
+                    <div className="book-card-action-btn">
+                        <Button
+                            type="primary"
+                            icon={<EditOutlined />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit?.(book);
+                            }}
+                        >
+                            Sửa
+                        </Button>
+                    </div>
+                    <div className="book-card-action-btn">
+                        <Popconfirm
+                            title="Bạn có chắc chắn muốn xóa sách này?"
+                            onConfirm={() => onDelete?.(book)}
+                            okText="Xóa"
+                            cancelText="Hủy"
+                        >
+                            <Button
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={e => e.stopPropagation()}
+                            >
+                                Xóa
+                            </Button>
+                        </Popconfirm>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <div className="book-card-action-btn">
+                        <Button
+                            type="primary"
+                            icon={<ShoppingCartOutlined style={{ fontSize: 16 }} />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onAddToCart?.(book, e);
+                            }}
+                            loading={loading}
+                        >
+                            Thêm vào giỏ
+                        </Button>
+                    </div>
+                    <div className="book-card-action-btn">
+                        <Button
+                            type="primary"
+                            danger
+                            icon={<ThunderboltOutlined style={{ fontSize: 16 }} />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onBuyNow?.(book, e);
+                            }}
+                            loading={loading}
+                        >
+                            Mua ngay
+                        </Button>
+                    </div>
+                </>
+            )}
+        </div>
     );
 
     return (
@@ -292,13 +268,7 @@ const BookCard = ({
                     </div>
 
                     {/* Action Buttons */}
-                    <div style={{
-                        display: 'flex',
-                        gap: '8px',
-                        marginTop: '8px'
-                    }}>
-                        {isAdmin ? renderAdminActions() : renderUserActions()}
-                    </div>
+                    {renderActions()}
                 </div>
             </div>
         </div>

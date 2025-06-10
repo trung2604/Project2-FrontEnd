@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Typography, Spin, Empty, Row, Col, Modal, message, Button } from 'antd';
 import { getBooksByCategoryAPI, deleteBookAPI, getAllCategoriesAPI } from '../services/api-service';
 import BookCard from '../components/book/BookCard';
@@ -7,6 +7,7 @@ import CategoryBookList from '../components/book/CategoryBookList';
 import BookForm from '../components/book/BookForm';
 import BookDetailDrawer from '../components/book/BookDetailDrawer';
 import { AuthContext } from '../components/context/auth-context';
+import { useCart } from '../components/context/cart-context';
 import '../styles/book-card.css';
 
 const { Title } = Typography;
@@ -24,6 +25,9 @@ const CategoryBooksPage = () => {
     const [showDrawer, setShowDrawer] = useState(false);
     const [selectedBook, setSelectedBook] = useState(null);
     const [categories, setCategories] = useState([]);
+    const { addToCart } = useCart();
+    const navigate = useNavigate();
+    const [actionLoading, setActionLoading] = useState({});
 
     useEffect(() => {
         loadCategories();
@@ -63,6 +67,22 @@ const CategoryBooksPage = () => {
             // Map category id sang object luôn khi load books
             const mappedBooks = booksData.map(book => {
                 let mappedBook = { ...book };
+                // Đảm bảo image là object có thumbnail, medium, original
+                if (mappedBook.image) {
+                    if (typeof mappedBook.image === 'string') {
+                        mappedBook.image = {
+                            thumbnail: mappedBook.image,
+                            medium: mappedBook.image,
+                            original: mappedBook.image
+                        };
+                    } else if (typeof mappedBook.image === 'object') {
+                        mappedBook.image = {
+                            thumbnail: mappedBook.image.thumbnail || mappedBook.image.medium || mappedBook.image.original || '',
+                            medium: mappedBook.image.medium || mappedBook.image.original || mappedBook.image.thumbnail || '',
+                            original: mappedBook.image.original || mappedBook.image.medium || mappedBook.image.thumbnail || ''
+                        };
+                    }
+                }
                 if (Array.isArray(book.categoryId) && categories) {
                     mappedBook.category = book.categoryId
                         .map(catId => categories.find(c => String(c.id) === String(catId)))
@@ -131,6 +151,35 @@ const CategoryBooksPage = () => {
         setShowDrawer(true);
     };
 
+    const handleAddToCart = async (book, e) => {
+        if (!user?.id) {
+            message.warning("Vui lòng đăng nhập để thêm vào giỏ hàng");
+            navigate('/login');
+            return;
+        }
+        setActionLoading(prev => ({ ...prev, [book.id]: true }));
+        try {
+            await addToCart(book.id, 1);
+        } finally {
+            setActionLoading(prev => ({ ...prev, [book.id]: false }));
+        }
+    };
+
+    const handleBuyNow = async (book, e) => {
+        if (!user?.id) {
+            message.warning("Vui lòng đăng nhập để mua hàng");
+            navigate('/login');
+            return;
+        }
+        setActionLoading(prev => ({ ...prev, [book.id]: true }));
+        try {
+            await addToCart(book.id, 1);
+            navigate('/cart');
+        } finally {
+            setActionLoading(prev => ({ ...prev, [book.id]: false }));
+        }
+    };
+
     return (
         <div className="book-list-bg" style={{ padding: "24px 0 0 0", minHeight: "100vh" }}>
             <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 32px" }}>
@@ -145,9 +194,9 @@ const CategoryBooksPage = () => {
                     </div>
                 </Col>
                 <Col xs={24} md={18}>
-                    <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: 1200, margin: '0 auto' }}>
+                    <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: 1200, margin: '0 auto', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                         <Spin spinning={loading} tip="Đang tải sách..." size="large">
-                            <Row gutter={[20, 24]} justify="center">
+                            <Row gutter={[32, 32]} justify="start">
                                 {books.map(book => {
                                     let mappedBook = { ...book };
                                     if (Array.isArray(book.categoryId) && categories) {
@@ -159,15 +208,33 @@ const CategoryBooksPage = () => {
                                         mappedBook.category = found ? [found] : [];
                                     }
                                     // Đã map category thành object có name/id ở trên
+                                    console.log('BookCard image:', mappedBook.image);
                                     return (
-                                        <Col xs={24} sm={12} md={8} lg={6} xl={4} key={book.id} style={{ display: 'flex', justifyContent: 'center' }}>
+                                        <Col
+                                            xs={24}
+                                            sm={12}
+                                            md={8}
+                                            lg={6}
+                                            xl={6}
+                                            xxl={4}
+                                            key={book.id}
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                marginBottom: '32px'
+                                            }}
+                                        >
                                             <BookCard
                                                 book={mappedBook}
                                                 categories={categories}
                                                 isAdmin={isAdmin}
                                                 onEdit={isAdmin ? handleEdit : undefined}
                                                 onDelete={isAdmin ? handleDelete : undefined}
+                                                onAddToCart={!isAdmin ? handleAddToCart : undefined}
+                                                onBuyNow={!isAdmin ? handleBuyNow : undefined}
                                                 onClick={handleCardClick}
+                                                loading={actionLoading[mappedBook.id]}
+                                                style={{ width: '100%', maxWidth: '280px', transition: 'all 0.3s ease' }}
                                             />
                                         </Col>
                                     );

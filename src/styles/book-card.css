@@ -14,9 +14,9 @@
 
 .book-card {
   box-sizing: border-box;
-  width: 100%;
-  min-width: 180px;
-  max-width: 220px;
+  width: 100% !important;
+  min-width: 220px;
+  max-width: 280px !important;
   min-height: unset;
   max-height: unset;
   display: flex;
@@ -101,23 +101,17 @@
 }
 
 .book-card .ant-btn {
-  width: 100%;
-  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 42px;
   font-size: 15px;
-  font-weight: 600;
   border-radius: 10px;
-  border: none !important;
-  background: #1890ff !important;
-  color: #fff !important;
-  padding: 0 0;
-  height: 40px;
-  line-height: 40px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  box-shadow: none !important;
-  transition: all 0.2s;
 }
 
 .book-card .ant-btn .anticon {
@@ -240,14 +234,18 @@
 
 .book-card .admin-actions {
   display: flex;
-  gap: 12px;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
   justify-content: center;
 }
 
 .book-card .user-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 10px;
+  width: 100%;
+  justify-content: center;
 }
 
 .book-image-container {
@@ -379,18 +377,91 @@
 
 .book-card-actions {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: row;
+  gap: 12px;
   width: 100%;
-  padding: 0;
-  margin: 0 auto 8px auto;
+  margin-top: 18px;
 }
 
-.book-card .ant-btn, .book-card .ant-space-item {
-  width: 48%;
-  min-width: 80px;
+.book-card-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+}
+
+.book-card-action-btn .ant-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 42px;
+  font-size: 15px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 1%;
+}
+
+/* Search Form Styles */
+.search-form-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.search-form-card .ant-form-item {
+    margin-bottom: 16px;
+}
+
+.search-form-card .ant-input-affix-wrapper {
+    border-radius: 8px;
+}
+
+.search-form-card .ant-select-selector {
+    border-radius: 8px !important;
+}
+
+.search-form-card .ant-input-number {
+    width: 100%;
+}
+
+.search-form-card .ant-input-number-input {
+    border-radius: 8px;
+}
+
+/* Book Highlights Styles */
+.book-highlights {
+    margin-bottom: 32px;
+}
+
+.book-highlights .ant-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.book-highlights .ant-typography {
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.book-highlights .ant-card-body {
+    padding: 24px;
+}
+
+/* Books Page Layout */
+.books-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+@media (max-width: 768px) {
+    .books-page {
+        padding: 16px;
+    }
+    
+    .search-form-card .ant-form-item {
+        margin-bottom: 12px;
+    }
 } 

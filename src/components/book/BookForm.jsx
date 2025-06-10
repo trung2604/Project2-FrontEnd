@@ -5,7 +5,7 @@ import { PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
-const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefreshTrigger, loadBooks }) => {
+const BookForm = ({ isModalOpen, setIsModalOpen, bookData, setBookData, onSuccess, setRefreshTrigger, loadBooks }) => {
     const [form] = Form.useForm();
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
@@ -16,21 +16,16 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefresh
     useEffect(() => {
         if (isModalOpen) {
             loadCategories();
+            if (bookData) {
+                form.setFieldsValue({
+                    ...bookData,
+                    categoryId: bookData.categoryId || bookData.category?.id
+                });
+            } else {
+                form.resetFields();
+            }
         }
         if (isModalOpen && bookData) {
-            form.setFieldsValue({
-                id: bookData.id,
-                mainText: bookData.mainText,
-                author: bookData.author,
-                price: bookData.price,
-                sold: bookData.sold,
-                quantity: bookData.quantity,
-                category: bookData.category
-                    ? (Array.isArray(bookData.category)
-                        ? [bookData.category[0]?.id]
-                        : [bookData.category.id])
-                    : [],
-            });
             setPreview(bookData.image?.medium || bookData.image?.original || bookData.image?.thumbnail);
         } else if (!isModalOpen) {
             form.resetFields();
@@ -247,23 +242,18 @@ const BookForm = ({ isModalOpen, setIsModalOpen, bookData, onSuccess, setRefresh
 
     return (
         <Modal
-            title={bookData ? "Sửa sách" : "Thêm sách mới"}
+            title={bookData ? "Chỉnh sửa sách" : "Thêm sách mới"}
             open={isModalOpen}
             onCancel={handleModalClose}
             footer={null}
-            width={720}
+            width={800}
+            destroyOnHidden
         >
             <Form
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
-                initialValues={bookData ? {
-                    title: bookData.mainText,
-                    author: bookData.author,
-                    price: bookData.price,
-                    quantity: bookData.quantity,
-                    category: bookData.category ? [bookData.category] : []
-                } : undefined}
+                initialValues={bookData || {}}
             >
                 {bookData && (
                     <Form.Item name="id" label="ID">

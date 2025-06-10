@@ -300,6 +300,30 @@ export const deliveredOrderAPI = async (orderId) => {
     return await axios.post(`/api/bookStore/orders/${orderId}/delivered`);
 };
 
+// Book Search and Filter APIs
+const searchBooksAPI = (params) => {
+    const URL_BACKEND = "/api/bookStore/book/search";
+    return axios.get(URL_BACKEND, { params });
+};
+
+const searchBooksByKeywordAPI = (params) => {
+    const URL_BACKEND = "/api/bookStore/book/search/keyword";
+    return axios.get(URL_BACKEND, { params });
+};
+
+const getTopSellingBooksAPI = (limit = 5) => {
+    const URL_BACKEND = "/api/bookStore/book/top-selling";
+    return axios.get(URL_BACKEND, { params: { limit } });
+};
+
+const getLatestBooksAPI = (limit = 3) => {
+    const URL_BACKEND = "/api/bookStore/book/latest";
+    return axios.get(URL_BACKEND, { params: { limit } });
+};
+
+export const getNewBooksAPI = () => axios.get('/api/bookStore/book/latest', { params: { limit: 5 } });
+export const getBestSellersAPI = () => axios.get('/api/bookStore/book/top-selling', { params: { limit: 5 } });
+
 export {
     createUserAPI,
     addUserAPI,
@@ -328,5 +352,9 @@ export {
     createCategoryAPI,
     updateCategoryAPI,
     deleteCategoryAPI,
-    searchCategoriesAPI
+    searchCategoriesAPI,
+    searchBooksAPI,
+    searchBooksByKeywordAPI,
+    getTopSellingBooksAPI,
+    getLatestBooksAPI
 };
