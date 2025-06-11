@@ -197,54 +197,51 @@ const CategoryBooksPage = () => {
                     <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: 1200, margin: '0 auto', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                         <Spin spinning={loading} tip="Đang tải sách..." size="large">
                             <Row gutter={[32, 32]} justify="start">
-                                {books.map(book => {
-                                    let mappedBook = { ...book };
-                                    if (Array.isArray(book.categoryId) && categories) {
-                                        mappedBook.category = book.categoryId
-                                            .map(catId => categories.find(c => String(c.id) === String(catId)))
-                                            .filter(Boolean);
-                                    } else if (book.categoryId && categories) {
-                                        const found = categories.find(c => String(c.id) === String(book.categoryId));
-                                        mappedBook.category = found ? [found] : [];
-                                    }
-                                    // Đã map category thành object có name/id ở trên
-                                    console.log('BookCard image:', mappedBook.image);
-                                    return (
-                                        <Col
-                                            xs={24}
-                                            sm={12}
-                                            md={8}
-                                            lg={6}
-                                            xl={6}
-                                            xxl={4}
-                                            key={book.id}
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'center',
-                                                marginBottom: '32px'
-                                            }}
-                                        >
-                                            <BookCard
-                                                book={mappedBook}
-                                                categories={categories}
-                                                isAdmin={isAdmin}
-                                                onEdit={isAdmin ? handleEdit : undefined}
-                                                onDelete={isAdmin ? handleDelete : undefined}
-                                                onAddToCart={!isAdmin ? handleAddToCart : undefined}
-                                                onBuyNow={!isAdmin ? handleBuyNow : undefined}
-                                                onClick={handleCardClick}
-                                                loading={actionLoading[mappedBook.id]}
-                                                style={{ width: '100%', maxWidth: '280px', transition: 'all 0.3s ease' }}
-                                            />
-                                        </Col>
-                                    );
-                                })}
+                                {books.length === 0 ? (
+                                    <Empty description="Không có sách nào trong danh mục này" />
+                                ) : (
+                                    books.map(book => {
+                                        let mappedBook = { ...book };
+                                        if (Array.isArray(book.categoryId) && categories) {
+                                            mappedBook.category = book.categoryId
+                                                .map(catId => categories.find(c => String(c.id) === String(catId)))
+                                                .filter(Boolean);
+                                        } else if (book.categoryId && categories) {
+                                            const found = categories.find(c => String(c.id) === String(book.categoryId));
+                                            mappedBook.category = found ? [found] : [];
+                                        }
+                                        return (
+                                            <Col
+                                                xs={24}
+                                                sm={12}
+                                                md={8}
+                                                lg={6}
+                                                xl={6}
+                                                xxl={4}
+                                                key={book.id}
+                                                style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}
+                                            >
+                                                <BookCard
+                                                    book={mappedBook}
+                                                    categories={categories}
+                                                    isAdmin={isAdmin}
+                                                    onEdit={isAdmin ? handleEdit : undefined}
+                                                    onDelete={isAdmin ? handleDelete : undefined}
+                                                    onAddToCart={!isAdmin ? handleAddToCart : undefined}
+                                                    onBuyNow={!isAdmin ? handleBuyNow : undefined}
+                                                    onClick={handleCardClick}
+                                                    loading={actionLoading[mappedBook.id]}
+                                                    style={{ width: '100%', maxWidth: '280px', transition: 'all 0.3s ease' }}
+                                                />
+                                            </Col>
+                                        );
+                                    })
+                                )}
                             </Row>
                         </Spin>
                     </div>
                 </Col>
             </Row>
-
             <BookForm
                 isModalOpen={isModalOpen}
                 setIsModalOpen={setIsModalOpen}
@@ -252,7 +249,6 @@ const CategoryBooksPage = () => {
                 setBookData={setBookData}
                 loadBooks={loadBooksByCategory}
             />
-
             <BookDetailDrawer
                 open={showDrawer}
                 onClose={() => setShowDrawer(false)}

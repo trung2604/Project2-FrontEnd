@@ -1,103 +1,184 @@
-.home-container {
+/* Landing Page Styles */
+.landing-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+/* Hero Section */
+.hero-section {
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+  padding: 80px 20px;
+  text-align: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff10" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,149.3C960,160,1056,160,1152,138.7C1248,117,1344,75,1392,53.3L1440,32L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.1;
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content h1 {
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-description {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.hero-buttons .ant-btn {
+  padding: 0 2rem;
+  height: 48px;
+  font-size: 1.1rem;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Main Content */
+.main-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-  min-height: calc(100vh - 200px); /* Trừ đi chiều cao của header và footer */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 40px 20px;
 }
 
-.home-container h1 {
-  font-size: 3rem;
-  color: #2c3e50;
-  margin-bottom: 2rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+.content-section {
+  margin-bottom: 60px;
 }
 
-.card {
+.section-container {
   background: white;
-  padding: 2rem;
-  border-radius: 15px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 32px !important;
+  color: #2c3e50;
+  font-weight: 600 !important;
+}
+
+/* Book Highlights Section */
+.book-highlights {
   width: 100%;
-  max-width: 500px;
-  transition: transform 0.3s ease;
 }
 
-.card:hover {
-  transform: translateY(-5px);
-}
-
-.card button {
-  background: #3498db;
-  color: white;
+.book-highlights .ant-card {
   border: none;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  border-radius: 8px;
-  cursor: pointer;
+  box-shadow: none;
+  background: transparent;
+}
+
+.book-highlights .ant-card-head {
+  border-bottom: none;
+  padding: 0;
+}
+
+.book-highlights .ant-card-body {
+  padding: 0;
+}
+
+/* Categories Section */
+.categories-section .section-container {
+  background: #f8fafc;
+}
+
+.category-list-container {
+  width: 100%;
+}
+
+.category-list-container .ant-card {
+  background: white;
+  border: 1px solid #e8e8e8;
   transition: all 0.3s ease;
-  margin-bottom: 1rem;
-  font-weight: 600;
 }
 
-.card button:hover {
-  background: #2980b9;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+.category-list-container .ant-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-.card p {
-  color: #666;
-  font-size: 1.1rem;
-  line-height: 1.6;
-}
-
-.read-the-docs {
-  color: #666;
-  font-size: 1rem;
-  margin-top: 2rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  backdrop-filter: blur(5px);
-}
-
-/* Responsive styles */
+/* Responsive Styles */
 @media (max-width: 768px) {
-  .home-container {
-    padding: 1rem;
+  .hero-section {
+    padding: 60px 20px;
   }
 
-  .home-container h1 {
+  .hero-content h1 {
     font-size: 2.5rem;
   }
 
-  .card {
-    padding: 1.5rem;
+  .hero-description {
+    font-size: 1.1rem;
   }
 
-  .card button {
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-buttons .ant-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .main-content {
+    padding: 20px;
+  }
+
+  .section-container {
+    padding: 20px;
   }
 }
 
 @media (max-width: 480px) {
-  .home-container h1 {
+  .hero-section {
+    padding: 40px 20px;
+  }
+
+  .hero-content h1 {
     font-size: 2rem;
   }
 
-  .card {
-    padding: 1rem;
+  .hero-description {
+    font-size: 1rem;
   }
 
-  .card p {
-    font-size: 1rem;
+  .section-title {
+    font-size: 1.5rem !important;
   }
 } 

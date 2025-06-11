@@ -75,6 +75,10 @@ const Router = createBrowserRouter([
         ),
       },
       {
+        path: '/category/:categoryId',
+        element: <CategoryBooksPage />,
+      },
+      {
         path: '/cart',
         element: (
           <PrivateRoute>

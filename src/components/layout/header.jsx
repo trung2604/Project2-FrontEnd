@@ -47,6 +47,12 @@ const Header = () => {
     }
   }, [cart, user?.id]);
 
+  // Gọi fetchCart khi user đăng nhập hoặc khi vào trang web
+  useEffect(() => {
+    if (user?.id) {
+      fetchCart();
+    }
+  }, [user?.id]);
 
   const handleSearch = (value) => {
     if (value.trim()) {
@@ -244,14 +250,6 @@ const Header = () => {
           items={getMenuItems()}
         />
         <div className="header-right">
-          <Input.Search
-            placeholder="Tìm kiếm sách..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            onSearch={handleSearch}
-            className="search-input"
-            allowClear
-          />
           {user?.id && user.role === 'ROLE_USER' && (
             <Badge count={cartCount} showZero>
               <Button

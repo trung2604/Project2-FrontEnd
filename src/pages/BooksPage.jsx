@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { getAllBookAPI } from "../services/api-service";
 import BookList from "../components/book/BookList";
 import BookForm from "../components/book/BookForm";
-import BookHighlights from "../components/book/BookHighlights";
 
 const BooksPage = () => {
     const [data, setData] = useState([]);
@@ -31,9 +30,6 @@ const BooksPage = () => {
 
     return (
         <div className="books-page">
-            {/* Book Highlights Section */}
-            <BookHighlights />
-
             {/* Main Book List with Search */}
             <BookList
                 data={data}

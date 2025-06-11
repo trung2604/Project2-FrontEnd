@@ -10,7 +10,7 @@ const CheckoutPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, setUser } = useContext(AuthContext);
-    const { clearCart } = useCart();
+    const { clearCart, removeCartItem, fetchCart } = useCart();
     const cart = location.state?.cart || [];
     const [formData, setFormData] = useState({
         fullName: "",
@@ -127,8 +127,7 @@ const CheckoutPage = () => {
             // Kiểm tra response có id là thành công
             if (response?.data && response.success === true) {
                 message.success("Đặt hàng thành công!");
-                await clearCart();
-
+                await fetchCart();
                 if (payment === "bank") {
                     navigate("/bank-transfer", {
                         state: {
