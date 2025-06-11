@@ -77,10 +77,15 @@ const BookDetailDrawer = ({ open, onClose, book, onEdit, onDelete, isAdmin }) =>
                 <Descriptions.Item label="Đã bán">{book.sold}</Descriptions.Item>
                 <Descriptions.Item label="Thể loại">
                     <div className="book-categories" style={{ marginTop: 4 }}>
-                        {Array.isArray(book.category) && book.category.length > 0
-                            ? book.category.map(renderCategoryTag)
-                            : <span style={{ color: '#aaa' }}>Không có</span>
-                        }
+                        {Array.isArray(book.category) && book.category.length > 0 ? (
+                            book.category.map(renderCategoryTag)
+                        ) : book.category && typeof book.category === 'object' ? (
+                            renderCategoryTag(book.category)
+                        ) : book.category && typeof book.category === 'string' ? (
+                            <Tag color="blue">{book.category}</Tag>
+                        ) : (
+                            <span style={{ color: '#aaa' }}>Không có</span>
+                        )}
                     </div>
                 </Descriptions.Item>
                 {/* Thêm các trường khác nếu cần */}

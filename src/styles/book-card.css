@@ -102,24 +102,31 @@
 
 .book-card .ant-btn {
   flex: 1 1 0;
-  min-width: 0;
-  height: 42px;
-  font-size: 15px;
-  border-radius: 10px;
-  font-weight: 600;
+  min-width: 90px;
+  height: 38px;
+  font-size: 12px;
+  border-radius: 8px;
+  font-weight: 500;
   margin: 0;
-  padding: 0;
-  display: flex;
+  padding: 0 14px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
+  overflow: visible;
 }
 
 .book-card .ant-btn .anticon {
-  font-size: 18px;
+  font-size: 16px;
   color: #fff !important;
   display: flex;
   align-items: center;
-  margin: 0;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.book-card .ant-btn span {
+  font-size: 12px !important;
 }
 
 .book-card .ant-btn-primary {

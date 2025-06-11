@@ -124,7 +124,6 @@ const BookCard = ({
                 className="book-card-cover"
                 style={{
                     width: '100%',
-                    height: '170px',
                     flexShrink: 0,
                     background: '#f8f9fa',
                     display: 'flex',

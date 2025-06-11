@@ -147,7 +147,30 @@ const CategoryBooksPage = () => {
     };
 
     const handleCardClick = (book) => {
-        setSelectedBook(book);
+        let mappedCategory = [];
+        if (categories && categories.length > 0) {
+            if (Array.isArray(book.categoryId)) {
+                mappedCategory = book.categoryId
+                    .map(catId => categories.find(c => String(c.id) === String(catId)))
+                    .filter(Boolean);
+            } else if (book.categoryId) {
+                const found = categories.find(c => String(c.id) === String(book.categoryId));
+                mappedCategory = found ? [found] : [];
+            }
+        }
+        // Nếu vẫn không có, fallback lấy từ book.category hoặc book.categoryName
+        if ((!mappedCategory || mappedCategory.length === 0)) {
+            if (Array.isArray(book.category) && book.category.length > 0) {
+                mappedCategory = book.category;
+            } else if (book.category && typeof book.category === 'object') {
+                mappedCategory = [book.category];
+            } else if (book.categoryName) {
+                mappedCategory = [{ name: book.categoryName }];
+            }
+        }
+        const bookForDrawer = { ...book, category: mappedCategory };
+        console.log('Book khi xem chi tiết:', bookForDrawer);
+        setSelectedBook(bookForDrawer);
         setShowDrawer(true);
     };
 
@@ -194,7 +217,7 @@ const CategoryBooksPage = () => {
                     </div>
                 </Col>
                 <Col xs={24} md={18}>
-                    <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: 1200, margin: '0 auto', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                    <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                         <Spin spinning={loading} tip="Đang tải sách..." size="large">
                             <Row gutter={[32, 32]} justify="start">
                                 {books.length === 0 ? (
@@ -222,7 +245,11 @@ const CategoryBooksPage = () => {
                                                 style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}
                                             >
                                                 <BookCard
-                                                    book={mappedBook}
+                                                    book={{
+                                                        ...mappedBook,
+                                                        title: mappedBook.mainText,
+                                                        category: mappedBook.category || { id: mappedBook.categoryId, name: mappedBook.categoryName }
+                                                    }}
                                                     categories={categories}
                                                     isAdmin={isAdmin}
                                                     onEdit={isAdmin ? handleEdit : undefined}
