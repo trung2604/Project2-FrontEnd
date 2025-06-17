@@ -1,5 +1,5 @@
-import { Button, Space, Tag, Typography, Tooltip, Popconfirm } from 'antd';
-import { EditOutlined, DeleteOutlined, ShoppingCartOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Button, Space, Tag, Typography, Tooltip, Popconfirm, Rate } from 'antd';
+import { EditOutlined, DeleteOutlined, ShoppingCartOutlined, ThunderboltOutlined, StarOutlined } from '@ant-design/icons';
 import BookImage from '../common/BookImage';
 import '../../styles/book-card.css';
 
@@ -229,6 +229,21 @@ const BookCard = ({
                     >
                         {categoryNames.length > 0 ? categoryNames.join(', ') : 'Không có thể loại'}
                     </Text>
+                </div>
+
+                {/* Rating */}
+                <div style={{ display: 'flex', alignItems: 'center', minHeight: 24 }}>
+                    <Text strong style={{ minWidth: 60, color: '#444', fontSize: 13 }}>Đánh giá:</Text>
+                    <div style={{ display: 'flex', alignItems: 'center', marginLeft: 6 }}>
+                        <Rate
+                            disabled
+                            value={book.averageRating || 0}
+                            style={{ fontSize: '12px' }}
+                        />
+                        <Text type="secondary" style={{ fontSize: '12px', marginLeft: 4 }}>
+                            ({book.reviewCount || 0})
+                        </Text>
+                    </div>
                 </div>
 
                 {/* Price and Stock Info */}

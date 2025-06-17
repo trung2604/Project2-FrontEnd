@@ -84,7 +84,10 @@ const logoutAPI = () => {
 
 const getAllBookAPI = (page, size) => {
     const URL_BACKEND = '/api/bookStore/book/paged';
-    return axios.get(URL_BACKEND, { params: { page, size } });
+    const timestamp = new Date().getTime();
+    return axios.get(URL_BACKEND, {
+        params: { page, size, _t: timestamp }
+    });
 }
 
 const addBookAPI = async (book) => {
@@ -277,7 +280,9 @@ export const cancelOrderAPI = async (orderId) => {
 };
 
 export const getBooksByCategoryAPI = (categoryId) => {
-    return axios.get(`/api/bookStore/book/category/${categoryId}`);
+    const URL_BACKEND = `/api/bookStore/book/category/${categoryId}`;
+    const timestamp = new Date().getTime();
+    return axios.get(URL_BACKEND, { params: { _t: timestamp } });
 };
 
 export const getBookCountByCategoryAPI = () => {
@@ -321,8 +326,18 @@ const getLatestBooksAPI = (limit = 3) => {
     return axios.get(URL_BACKEND, { params: { limit } });
 };
 
-export const getNewBooksAPI = () => axios.get('/api/bookStore/book/latest', { params: { limit: 5 } });
-export const getBestSellersAPI = () => axios.get('/api/bookStore/book/top-selling', { params: { limit: 5 } });
+export const getNewBooksAPI = () => {
+    const timestamp = new Date().getTime();
+    return axios.get('/api/bookStore/book/latest', {
+        params: { limit: 5, _t: timestamp }
+    });
+};
+export const getBestSellersAPI = () => {
+    const timestamp = new Date().getTime();
+    return axios.get('/api/bookStore/book/top-selling', {
+        params: { limit: 5, _t: timestamp }
+    });
+};
 
 // Report APIs
 export const getRevenueReportAPI = (startDate, endDate) => {
@@ -364,6 +379,48 @@ export const getOrderStatusReportAPI = (startDate, endDate) => {
             endDate: endDate.format('YYYY-MM-DDTHH:mm:ss')
         }
     });
+};
+
+// Review & Comment APIs
+export const createReviewAPI = (reviewData) => {
+    return axios.post('/api/bookStore/reviews', reviewData);
+};
+
+export const getBookReviewsAPI = (bookId, page = 0, size = 10) => {
+    return axios.get(`/api/bookStore/reviews/book/${bookId}`, {
+        params: { page, size }
+    });
+};
+
+export const getBookReviewSummaryAPI = (bookId) => {
+    return axios.get(`/api/bookStore/reviews/book/${bookId}/rating`);
+};
+
+export const getUserReviewsAPI = (page = 0, size = 10) => {
+    return axios.get('/api/bookStore/reviews/user', {
+        params: { page, size }
+    });
+};
+
+export const updateReviewAPI = (reviewId, reviewData) => {
+    return axios.put(`/api/bookStore/reviews/${reviewId}`, reviewData);
+};
+
+export const deleteReviewAPI = (reviewId) => {
+    return axios.delete(`/api/bookStore/reviews/${reviewId}`);
+};
+
+export const getReviewDetailAPI = (reviewId) => {
+    return axios.get(`/api/bookStore/reviews/${reviewId}`);
+};
+
+// Admin Review APIs
+export const getAdminReviewsAPI = (params = {}) => {
+    return axios.get('/api/bookStore/reviews/admin', { params });
+};
+
+export const getUserReviewForBookAPI = (bookId) => {
+    return axios.get(`/api/bookStore/reviews/user/book/${bookId}`);
 };
 
 // Export all functions that are not directly exported

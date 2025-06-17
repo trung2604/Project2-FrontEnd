@@ -25,8 +25,10 @@ import CategoryBooksPage from './pages/CategoryBooksPage';
 import BooksPage from './pages/BooksPage';
 import ShipperOrdersPage from './pages/ShipperOrdersPage';
 import ReportsPage from './pages/ReportsPage';
+import AdminReviewsPage from './pages/AdminReviewsPage';
+import UserReviewsPage from './pages/UserReviewsPage';
+import './components/review/review.css';
 
-// Wrap App with CartProvider
 const AppWithCart = () => (
   <CartProvider>
     <App />
@@ -124,6 +126,22 @@ const Router = createBrowserRouter([
         element: (
           <PrivateRoute requiredRole="ROLE_ADMIN">
             <ReportsPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/admin/reviews',
+        element: (
+          <PrivateRoute requiredRole="ROLE_ADMIN">
+            <AdminReviewsPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/my-reviews',
+        element: (
+          <PrivateRoute>
+            <UserReviewsPage />
           </PrivateRoute>
         ),
       },

@@ -6,6 +6,11 @@ const axiosInstance = axios.create({
 
 // Add a request interceptor
 axiosInstance.interceptors.request.use(function (config) {
+  // Thêm cache control headers để đảm bảo dữ liệu luôn fresh
+  config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+  config.headers['Pragma'] = 'no-cache';
+  config.headers['Expires'] = '0';
+
   if (typeof window !== 'undefined' && window && window.localStorage && window.localStorage.getItem('access_token')) {
     const token = window.localStorage.getItem('access_token');
     config.headers.Authorization = 'Bearer ' + token;

@@ -1,7 +1,8 @@
-import { Drawer, Descriptions, Tag, Button, Popconfirm } from "antd";
+import { Drawer, Descriptions, Tag, Button, Popconfirm, Tabs } from "antd";
 import { Link, useParams } from 'react-router-dom';
+import BookReviews from '../review/BookReviews';
 
-const BookDetailDrawer = ({ open, onClose, book, onEdit, onDelete, isAdmin }) => {
+const BookDetailDrawer = ({ open, onClose, book, onEdit, onDelete, isAdmin, onBookUpdate }) => {
     const { id: categoryId } = useParams(); // Lấy id danh mục từ URL
     if (!book) return null;
     console.log('Book in Drawer:', book);
@@ -27,12 +28,72 @@ const BookDetailDrawer = ({ open, onClose, book, onEdit, onDelete, isAdmin }) =>
             </Tag>
         );
     };
+
+    const handleReviewSubmitted = () => {
+        // Gọi callback để refresh dữ liệu sách
+        if (onBookUpdate) {
+            onBookUpdate();
+        }
+    };
+
+    const items = [
+        {
+            key: 'details',
+            label: 'Thông tin sách',
+            children: (
+                <>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
+                        <img
+                            src={book.image?.medium || book.image?.original || book.image?.thumbnail || '/no-image.png'}
+                            alt={book.mainText}
+                            style={{
+                                width: 220,
+                                height: 220,
+                                objectFit: 'cover',
+                                borderRadius: 16,
+                                boxShadow: '0 2px 12px rgba(0,0,0,0.10)',
+                                background: '#f5f5f5'
+                            }}
+                        />
+                    </div>
+                    <Descriptions column={1} bordered size="small">
+                        <Descriptions.Item label="Tác giả">{book.author}</Descriptions.Item>
+                        <Descriptions.Item label="Giá">
+                            {book.price?.toLocaleString()} đ
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Số lượng">{book.quantity}</Descriptions.Item>
+                        <Descriptions.Item label="Đã bán">{book.sold}</Descriptions.Item>
+                        <Descriptions.Item label="Thể loại">
+                            <div className="book-categories" style={{ marginTop: 4 }}>
+                                {Array.isArray(book.category) && book.category.length > 0 ? (
+                                    book.category.map(renderCategoryTag)
+                                ) : book.category && typeof book.category === 'object' ? (
+                                    renderCategoryTag(book.category)
+                                ) : book.category && typeof book.category === 'string' ? (
+                                    <Tag color="blue">{book.category}</Tag>
+                                ) : (
+                                    <span style={{ color: '#aaa' }}>Không có</span>
+                                )}
+                            </div>
+                        </Descriptions.Item>
+                        {/* Thêm các trường khác nếu cần */}
+                    </Descriptions>
+                </>
+            )
+        },
+        {
+            key: 'reviews',
+            label: 'Đánh giá',
+            children: <BookReviews bookId={book.id} bookInfo={book} onReviewSubmitted={handleReviewSubmitted} />
+        }
+    ];
+
     return (
         <Drawer
             title={book.mainText || "Chi tiết sách"}
             open={open}
             onClose={onClose}
-            width={420}
+            width={600}
             bodyStyle={{ padding: 24 }}
             extra={isAdmin && (
                 <>
@@ -54,42 +115,7 @@ const BookDetailDrawer = ({ open, onClose, book, onEdit, onDelete, isAdmin }) =>
                 </>
             )}
         >
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
-                <img
-                    src={book.image?.medium || book.image?.original || book.image?.thumbnail || '/no-image.png'}
-                    alt={book.mainText}
-                    style={{
-                        width: 220,
-                        height: 220,
-                        objectFit: 'cover',
-                        borderRadius: 16,
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.10)',
-                        background: '#f5f5f5'
-                    }}
-                />
-            </div>
-            <Descriptions column={1} bordered size="small">
-                <Descriptions.Item label="Tác giả">{book.author}</Descriptions.Item>
-                <Descriptions.Item label="Giá">
-                    {book.price?.toLocaleString()} đ
-                </Descriptions.Item>
-                <Descriptions.Item label="Số lượng">{book.quantity}</Descriptions.Item>
-                <Descriptions.Item label="Đã bán">{book.sold}</Descriptions.Item>
-                <Descriptions.Item label="Thể loại">
-                    <div className="book-categories" style={{ marginTop: 4 }}>
-                        {Array.isArray(book.category) && book.category.length > 0 ? (
-                            book.category.map(renderCategoryTag)
-                        ) : book.category && typeof book.category === 'object' ? (
-                            renderCategoryTag(book.category)
-                        ) : book.category && typeof book.category === 'string' ? (
-                            <Tag color="blue">{book.category}</Tag>
-                        ) : (
-                            <span style={{ color: '#aaa' }}>Không có</span>
-                        )}
-                    </div>
-                </Descriptions.Item>
-                {/* Thêm các trường khác nếu cần */}
-            </Descriptions>
+            <Tabs items={items} />
         </Drawer>
     );
 };

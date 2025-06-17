@@ -12,7 +12,8 @@ import {
   ExclamationCircleOutlined,
   AppstoreOutlined,
   ShoppingOutlined,
-  BarChartOutlined
+  BarChartOutlined,
+  StarOutlined
 } from '@ant-design/icons';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import './Header.css';
@@ -144,6 +145,12 @@ const Header = () => {
           onClick: () => navigate('/users')
         },
         {
+          key: 'reviews',
+          icon: <StarOutlined />,
+          label: 'Quản lý đánh giá',
+          onClick: () => navigate('/admin/reviews')
+        },
+        {
           key: 'reports',
           icon: <BarChartOutlined />,
           label: 'Báo cáo thống kê',
@@ -208,6 +215,11 @@ const Header = () => {
         }}>Hồ sơ</span>
       },
       {
+        key: 'my-reviews',
+        icon: <StarOutlined />,
+        label: <span onClick={() => navigate('/my-reviews')}>Đánh giá của tôi</span>
+      },
+      {
         key: 'logout',
         icon: <LogoutOutlined />,
         label: <span onClick={showLogoutConfirm}>Đăng xuất</span>,
@@ -224,6 +236,8 @@ const Header = () => {
     if (location.pathname.startsWith('/categories')) return 'categories';
     if (location.pathname.startsWith('/orders')) return 'orders';
     if (location.pathname.startsWith('/reports')) return 'reports';
+    if (location.pathname.startsWith('/admin/reviews')) return 'reviews';
+    if (location.pathname.startsWith('/my-reviews')) return 'my-reviews';
     if (location.pathname.startsWith('/login')) return 'login';
     if (location.pathname.startsWith('/register')) return 'register';
     return '';

@@ -12,6 +12,7 @@ const CheckoutPage = () => {
     const { user, setUser } = useContext(AuthContext);
     const { clearCart, removeCartItem, fetchCart } = useCart();
     const cart = location.state?.cart || [];
+    const isBuyNow = location.state?.isBuyNow || false;
     const [formData, setFormData] = useState({
         fullName: "",
         email: "",
@@ -127,7 +128,13 @@ const CheckoutPage = () => {
             // Kiểm tra response có id là thành công
             if (response?.data && response.success === true) {
                 message.success("Đặt hàng thành công!");
-                await fetchCart();
+
+                // Nếu là mua ngay, không cần xóa khỏi giỏ hàng vì không có trong giỏ
+                // Nếu không phải mua ngay, refresh giỏ hàng
+                if (!isBuyNow) {
+                    await fetchCart();
+                }
+
                 if (payment === "bank") {
                     navigate("/bank-transfer", {
                         state: {
@@ -181,7 +188,22 @@ const CheckoutPage = () => {
 
     return (
         <div style={{ maxWidth: 700, margin: "32px auto", background: "#fff", padding: 24, borderRadius: 8 }}>
-            <h2>Xác nhận đơn hàng</h2>
+            <h2>{isBuyNow ? "Mua ngay" : "Xác nhận đơn hàng"}</h2>
+
+            {isBuyNow && (
+                <div style={{
+                    marginBottom: 16,
+                    padding: 12,
+                    background: '#f6ffed',
+                    border: '1px solid #b7eb8f',
+                    borderRadius: 6
+                }}>
+                    <span style={{ color: '#52c41a', fontWeight: 500 }}>
+                        ⚡ Bạn đang mua ngay sản phẩm này với số lượng cố định
+                    </span>
+                </div>
+            )}
+
             <Table
                 dataSource={cart}
                 columns={columns}
@@ -243,7 +265,7 @@ const CheckoutPage = () => {
                     onClick={handleOrder}
                     loading={loading}
                 >
-                    Đặt hàng
+                    {isBuyNow ? "Mua ngay" : "Đặt hàng"}
                 </Button>
             </div>
         </div>

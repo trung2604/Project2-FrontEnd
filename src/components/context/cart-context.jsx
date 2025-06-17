@@ -3,7 +3,6 @@ import {
   addToCartAPI, updateCartItemAPI, removeCartItemAPI,
   clearCartAPI, getCartItemsAPI
 } from "../../services/api-service";
-import { message } from "antd";
 import { AuthContext } from "./auth-context";
 
 export const CartContext = createContext();
@@ -33,7 +32,6 @@ export const CartProvider = ({ children }) => {
         setTotal(0);
       }
     } catch (err) {
-      message.error("Không thể lấy thông tin giỏ hàng. Vui lòng thử lại sau.");
       setCart([]);
       setTotal(0);
     } finally {
@@ -48,18 +46,9 @@ export const CartProvider = ({ children }) => {
       const res = await addToCartAPI(bookId, quantity);
       if (res && res.data) {
         await fetchCart();
-        message.success("Thêm vào giỏ hàng thành công");
-        return res.data;
+        return res;
       }
     } catch (err) {
-      console.error("Lỗi khi thêm vào giỏ hàng:", err);
-      if (err.response?.status === 401) {
-        message.error("Bạn cần đăng nhập để thêm vào giỏ hàng");
-      } else if (err.response?.data?.message) {
-        message.error(err.response.data.message);
-      } else {
-        message.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.");
-      }
       throw err;
     } finally {
       setIsLoading(false);
@@ -76,12 +65,6 @@ export const CartProvider = ({ children }) => {
         return res.data;
       }
     } catch (err) {
-      console.error("Lỗi khi cập nhật giỏ hàng:", err);
-      if (err.response?.data?.message) {
-        message.error(err.response.data.message);
-      } else {
-        message.error("Không thể cập nhật số lượng. Vui lòng thử lại sau.");
-      }
       throw err;
     } finally {
       setIsLoading(false);
@@ -98,8 +81,6 @@ export const CartProvider = ({ children }) => {
         return res.data;
       }
     } catch (err) {
-      console.error("Lỗi khi xóa khỏi giỏ hàng:", err);
-      message.error("Không thể xóa khỏi giỏ hàng. Vui lòng thử lại sau.");
       throw err;
     } finally {
       setIsLoading(false);
@@ -116,8 +97,6 @@ export const CartProvider = ({ children }) => {
         return res.data;
       }
     } catch (err) {
-      console.error("Lỗi khi xóa giỏ hàng:", err);
-      message.error("Không thể xóa giỏ hàng. Vui lòng thử lại sau.");
       throw err;
     } finally {
       setIsLoading(false);

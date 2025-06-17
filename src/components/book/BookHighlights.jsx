@@ -71,10 +71,25 @@ const BookHighlights = () => {
         }
         setActionLoading(prev => ({ ...prev, [book.id]: true }));
         try {
-            await addToCart(book.id, 1);
-            navigate('/cart');
+            // Tạo dữ liệu sách cho checkout
+            const bookForCheckout = {
+                bookId: book.id,
+                bookTitle: book.mainText,
+                bookImage: book.image,
+                price: book.price,
+                quantity: 1,
+                totalPrice: book.price
+            };
+
+            // Chuyển đến trang checkout với sách này
+            navigate('/checkout', {
+                state: {
+                    cart: [bookForCheckout],
+                    isBuyNow: true // Flag để biết đây là mua ngay
+                }
+            });
         } catch (error) {
-            message.error(error?.response?.message || 'Không thể thêm vào giỏ hàng');
+            message.error(error?.response?.message || 'Không thể thực hiện mua ngay');
         } finally {
             setActionLoading(prev => ({ ...prev, [book.id]: false }));
         }

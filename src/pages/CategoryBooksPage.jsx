@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Typography, Spin, Empty, Row, Col, Modal, message, Button } from 'antd';
-import { getBooksByCategoryAPI, deleteBookAPI, getAllCategoriesAPI } from '../services/api-service';
+import { getBooksByCategoryAPI, deleteBookAPI, getAllCategoriesAPI, getBookReviewSummaryAPI } from '../services/api-service';
 import BookCard from '../components/book/BookCard';
 import CategoryBookList from '../components/book/CategoryBookList';
 import BookForm from '../components/book/BookForm';
@@ -15,6 +15,7 @@ const { Title } = Typography;
 const CategoryBooksPage = () => {
     const { categoryId } = useParams();
     const location = useLocation();
+    const navigate = useNavigate();
     const { user } = useContext(AuthContext);
     const isAdmin = user?.role === 'ROLE_ADMIN';
     const [books, setBooks] = useState([]);
@@ -26,7 +27,6 @@ const CategoryBooksPage = () => {
     const [selectedBook, setSelectedBook] = useState(null);
     const [categories, setCategories] = useState([]);
     const { addToCart } = useCart();
-    const navigate = useNavigate();
     const [actionLoading, setActionLoading] = useState({});
 
     useEffect(() => {
@@ -56,6 +56,65 @@ const CategoryBooksPage = () => {
         }
         // eslint-disable-next-line
     }, [categoryId, categories]);
+
+    // Force refresh khi user focus vào window (khi quay lại tab)
+    useEffect(() => {
+        const handleFocus = () => {
+            console.log('Window focused, refreshing category books...');
+            if (categoryId && categories.length > 0) {
+                loadBooksByCategory();
+            }
+        };
+
+        const handleBeforeUnload = () => {
+            console.log('Page is about to unload, clearing cache...');
+            // Clear any cached data
+            sessionStorage.clear();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [categoryId, categories]);
+
+    // Force refresh khi component mount
+    useEffect(() => {
+        console.log('CategoryBooksPage mounted, loading fresh data...');
+        if (categoryId && categories.length > 0) {
+            loadBooksByCategory();
+        }
+    }, [categoryId, categories]);
+
+    // Force refresh ngay khi component mount lần đầu (chỉ chạy 1 lần)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            console.log('Initial load completed, forcing refresh...');
+            if (categoryId && categories.length > 0) {
+                loadBooksByCategory();
+            }
+        }, 100); // Delay 100ms để đảm bảo component đã mount hoàn toàn
+
+        return () => clearTimeout(timer);
+    }, [categoryId, categories]);
+
+    // Force refresh khi user thay đổi (đăng nhập/đăng xuất)
+    useEffect(() => {
+        console.log('User changed in CategoryBooksPage, refreshing data...', user?.id);
+        if (categoryId && categories.length > 0) {
+            loadBooksByCategory();
+        }
+    }, [user?.id, categoryId, categories]);
+
+    // Force refresh khi navigate đến trang này
+    useEffect(() => {
+        console.log('Location changed in CategoryBooksPage, refreshing data...', location.pathname);
+        if (categoryId && categories.length > 0) {
+            loadBooksByCategory();
+        }
+    }, [location.pathname, categoryId, categories]);
 
     const loadBooksByCategory = async () => {
         setLoading(true);
@@ -101,13 +160,56 @@ const CategoryBooksPage = () => {
                 });
                 return mappedBook;
             });
-            setBooks(mappedBooks);
+
+            // Fetch rating data cho tất cả sách
+            const booksWithRating = await fetchBooksWithRating(mappedBooks);
+            setBooks(booksWithRating);
         } catch (error) {
             console.error("Error loading books:", error);
             message.error("Lỗi khi tải danh sách sách!");
         } finally {
             setLoading(false);
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    const fetchBooksWithRating = async (books) => {
+        try {
+            const booksWithRating = await Promise.all(
+                books.map(async (book) => {
+                    try {
+                        const ratingResponse = await getBookReviewSummaryAPI(book.id);
+                        console.log(`Rating response for book ${book.id}:`, ratingResponse);
+                        if (ratingResponse?.success && ratingResponse?.data) {
+                            return {
+                                ...book,
+                                averageRating: ratingResponse.data.averageRating || 0,
+                                reviewCount: ratingResponse.data.totalReviews || 0
+                            };
+                        }
+                        return {
+                            ...book,
+                            averageRating: 0,
+                            reviewCount: 0
+                        };
+                    } catch (error) {
+                        console.error(`Error fetching rating for book ${book.id}:`, error);
+                        return {
+                            ...book,
+                            averageRating: 0,
+                            reviewCount: 0
+                        };
+                    }
+                })
+            );
+            return booksWithRating;
+        } catch (error) {
+            console.error('Error fetching books with rating:', error);
+            return books.map(book => ({
+                ...book,
+                averageRating: 0,
+                reviewCount: 0
+            }));
         }
     };
 
@@ -196,10 +298,53 @@ const CategoryBooksPage = () => {
         }
         setActionLoading(prev => ({ ...prev, [book.id]: true }));
         try {
-            await addToCart(book.id, 1);
-            navigate('/cart');
+            // Tạo dữ liệu sách cho checkout
+            const bookForCheckout = {
+                bookId: book.id,
+                bookTitle: book.mainText,
+                bookImage: book.image,
+                price: book.price,
+                quantity: 1,
+                totalPrice: book.price
+            };
+
+            // Chuyển đến trang checkout với sách này
+            navigate('/checkout', {
+                state: {
+                    cart: [bookForCheckout],
+                    isBuyNow: true // Flag để biết đây là mua ngay
+                }
+            });
         } finally {
             setActionLoading(prev => ({ ...prev, [book.id]: false }));
+        }
+    };
+
+    const handleBookUpdate = () => {
+        // Refresh dữ liệu sách sau khi có đánh giá mới
+        loadBooksByCategory();
+    };
+
+    const updateBookRating = async (bookId) => {
+        try {
+            const ratingResponse = await getBookReviewSummaryAPI(bookId);
+            console.log(`Updating rating for book ${bookId}:`, ratingResponse);
+            if (ratingResponse?.success && ratingResponse?.data) {
+                // Cập nhật rating cho sách cụ thể trong danh sách
+                setBooks(prevBooks =>
+                    prevBooks.map(book =>
+                        book.id === bookId
+                            ? {
+                                ...book,
+                                averageRating: ratingResponse.data.averageRating || 0,
+                                reviewCount: ratingResponse.data.totalReviews || 0
+                            }
+                            : book
+                    )
+                );
+            }
+        } catch (error) {
+            console.error('Error updating book rating:', error);
         }
     };
 
@@ -292,6 +437,12 @@ const CategoryBooksPage = () => {
                     setTimeout(() => {
                         handleDelete(book);
                     }, 300);
+                }}
+                onBookUpdate={() => {
+                    if (selectedBook?.id) {
+                        updateBookRating(selectedBook.id);
+                    }
+                    handleBookUpdate();
                 }}
             />
         </div>

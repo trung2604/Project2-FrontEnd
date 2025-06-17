@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Table, Button, Space, Modal, message, Tag, Tooltip, Select, Popconfirm } from 'antd';
-import { EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Modal, message, Tag, Tooltip, Select, Popconfirm, Rate, Input, Form } from 'antd';
+import { EyeOutlined, DeleteOutlined, StarOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/auth-context';
 import { useNavigate } from 'react-router-dom';
-import { getUserOrdersAPI, getAllOrdersAPI, updateOrderStatusAPI, cancelOrderAPI, confirmOrderAPI } from '../../services/api-service';
+import { getUserOrdersAPI, getAllOrdersAPI, updateOrderStatusAPI, cancelOrderAPI, confirmOrderAPI, createReviewAPI, getUserReviewForBookAPI } from '../../services/api-service';
 
 const { Option } = Select;
+const { TextArea } = Input;
 
 const OrderList = () => {
     const { user } = useContext(AuthContext);
@@ -15,10 +16,15 @@ const OrderList = () => {
     const [loading, setLoading] = useState(false);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [reviewModalVisible, setReviewModalVisible] = useState(false);
+    const [selectedBook, setSelectedBook] = useState(null);
+    const [userReviews, setUserReviews] = useState({});
     const [current, setCurrent] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [total, setTotal] = useState(0);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [reviewForm] = Form.useForm();
+    const [reviewLoading, setReviewLoading] = useState(false);
 
     useEffect(() => {
         loadOrders();
@@ -46,6 +52,11 @@ const OrderList = () => {
                 });
                 setOrders(orderList);
                 setTotal(res.data.meta?.total || 0);
+
+                // Load user reviews for delivered orders
+                if (!isAdmin) {
+                    await loadUserReviews(orderList);
+                }
             } else {
                 setOrders([]);
                 setTotal(0);
@@ -61,6 +72,26 @@ const OrderList = () => {
         }
     };
 
+    const loadUserReviews = async (orderList) => {
+        const reviews = {};
+        for (const order of orderList) {
+            if (order.status === 'DELIVERED' && order.items) {
+                for (const item of order.items) {
+                    try {
+                        const response = await getUserReviewForBookAPI(item.bookId);
+                        if (response.success && response.data) {
+                            reviews[item.bookId] = response.data;
+                        }
+                    } catch (error) {
+                        // User chưa đánh giá sách này
+                        reviews[item.bookId] = null;
+                    }
+                }
+            }
+        }
+        setUserReviews(reviews);
+    };
+
     const handleChangePage = (pagination) => {
         if (pagination && pagination.current && pagination.pageSize) {
             if (+pagination.current !== +current) setCurrent(+pagination.current);
@@ -71,6 +102,68 @@ const OrderList = () => {
     const handleViewDetail = (order) => {
         setSelectedOrder(order);
         setDetailModalVisible(true);
+    };
+
+    const handleReview = (book) => {
+        setSelectedBook(book);
+        const existingReview = userReviews[book.bookId];
+        if (existingReview) {
+            reviewForm.setFieldsValue({
+                rating: existingReview.rating,
+                comment: existingReview.comment
+            });
+        } else {
+            reviewForm.resetFields();
+        }
+        setReviewModalVisible(true);
+    };
+
+    const handleSubmitReview = async (values) => {
+        if (!selectedBook) return;
+
+        setReviewLoading(true);
+        try {
+            const reviewData = {
+                bookId: selectedBook.bookId,
+                rating: values.rating,
+                comment: values.comment.trim()
+            };
+
+            const existingReview = userReviews[selectedBook.bookId];
+            let response;
+
+            if (existingReview) {
+                // Update existing review - không cần orderId
+                const { updateReviewAPI } = await import('../../services/api-service');
+                response = await updateReviewAPI(existingReview.id, reviewData);
+            } else {
+                // Create new review - cần thêm orderId
+                // Tìm orderId từ selectedOrder
+                const orderId = selectedOrder?.id;
+                if (!orderId) {
+                    message.error('Không tìm thấy thông tin đơn hàng');
+                    return;
+                }
+
+                reviewData.orderId = orderId;
+                response = await createReviewAPI(reviewData);
+            }
+
+            if (response.success) {
+                message.success(existingReview ? 'Cập nhật đánh giá thành công!' : 'Gửi đánh giá thành công!');
+                setReviewModalVisible(false);
+                reviewForm.resetFields();
+                // Reload user reviews
+                await loadUserReviews(orders);
+            } else {
+                message.error(response.message || 'Có lỗi xảy ra');
+            }
+        } catch (error) {
+            console.error('Error submitting review:', error);
+            message.error(error.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá');
+        } finally {
+            setReviewLoading(false);
+        }
     };
 
     const handleUpdateStatus = async (orderId, newStatus) => {
@@ -150,6 +243,22 @@ const OrderList = () => {
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    };
+
+    const renderReviewButton = (book) => {
+        if (isAdmin) return null;
+
+        const existingReview = userReviews[book.bookId];
+        return (
+            <Button
+                type="primary"
+                size="small"
+                icon={<StarOutlined />}
+                onClick={() => handleReview(book)}
+            >
+                {existingReview ? 'Chỉnh sửa đánh giá' : 'Đánh giá'}
+            </Button>
+        );
     };
 
     const columns = [
@@ -319,6 +428,16 @@ const OrderList = () => {
                                         dataIndex: 'subtotal',
                                         key: 'subtotal',
                                         render: (subtotal) => formatCurrency(subtotal)
+                                    },
+                                    {
+                                        title: 'Đánh giá',
+                                        key: 'review',
+                                        render: (_, record) => {
+                                            if (selectedOrder.status === 'DELIVERED' && !isAdmin) {
+                                                return renderReviewButton(record);
+                                            }
+                                            return null;
+                                        }
                                     }
                                 ]}
                                 dataSource={selectedOrder.items}
@@ -331,6 +450,91 @@ const OrderList = () => {
                             <p><strong>Ngày tạo:</strong> {new Date(selectedOrder.createdAt).toLocaleString('vi-VN')}</p>
                             <p><strong>Ngày cập nhật:</strong> {new Date(selectedOrder.updatedAt).toLocaleString('vi-VN')}</p>
                         </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Modal đánh giá */}
+            <Modal
+                title={selectedBook ? `Đánh giá sách: ${selectedBook.bookTitle}` : 'Đánh giá sách'}
+                open={reviewModalVisible}
+                onCancel={() => {
+                    setReviewModalVisible(false);
+                    reviewForm.resetFields();
+                }}
+                footer={null}
+                width={600}
+            >
+                {selectedBook && (
+                    <div>
+                        <div style={{ marginBottom: 16, padding: 12, background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
+                            <span style={{ color: '#52c41a', fontWeight: 500 }}>
+                                ✅ Đây là đánh giá từ người đã mua sách
+                            </span>
+                        </div>
+
+                        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <img
+                                src={selectedBook.bookImage}
+                                alt={selectedBook.bookTitle}
+                                style={{ width: 60, height: 80, objectFit: 'cover', borderRadius: 4 }}
+                            />
+                            <div>
+                                <h4 style={{ margin: 0 }}>{selectedBook.bookTitle}</h4>
+                                <p style={{ margin: 0, color: '#666' }}>Đơn giá: {formatCurrency(selectedBook.price)}</p>
+                            </div>
+                        </div>
+
+                        <Form
+                            form={reviewForm}
+                            layout="vertical"
+                            onFinish={handleSubmitReview}
+                        >
+                            <Form.Item
+                                label="Đánh giá của bạn"
+                                name="rating"
+                                rules={[{ required: true, message: 'Vui lòng chọn số sao đánh giá' }]}
+                            >
+                                <Rate style={{ fontSize: 24 }} allowHalf />
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Nhận xét"
+                                name="comment"
+                                rules={[
+                                    { required: true, message: 'Vui lòng viết nhận xét' },
+                                    { min: 10, message: 'Nhận xét phải có ít nhất 10 ký tự' },
+                                    { max: 1000, message: 'Nhận xét không được quá 1000 ký tự' }
+                                ]}
+                            >
+                                <TextArea
+                                    rows={4}
+                                    placeholder="Chia sẻ trải nghiệm của bạn về cuốn sách này..."
+                                    maxLength={1000}
+                                    showCount
+                                />
+                            </Form.Item>
+
+                            <div style={{ textAlign: 'right' }}>
+                                <Space>
+                                    <Button
+                                        onClick={() => {
+                                            setReviewModalVisible(false);
+                                            reviewForm.resetFields();
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button
+                                        type="primary"
+                                        htmlType="submit"
+                                        loading={reviewLoading}
+                                    >
+                                        {userReviews[selectedBook.bookId] ? 'Cập nhật' : 'Gửi đánh giá'}
+                                    </Button>
+                                </Space>
+                            </div>
+                        </Form>
                     </div>
                 )}
             </Modal>

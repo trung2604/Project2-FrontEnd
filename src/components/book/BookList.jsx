@@ -1,9 +1,9 @@
 import { useContext, useEffect, useState } from "react";
 import { Button, Row, Col, message, Spin, Popconfirm, Empty, Pagination, List } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { getAllBookAPI, deleteBookAPI, getAllCategoriesAPI, searchBooksAPI, getNewBooksAPI, getBestSellersAPI } from "../../services/api-service";
+import { getAllBookAPI, deleteBookAPI, getAllCategoriesAPI, searchBooksAPI, getNewBooksAPI, getBestSellersAPI, getBookReviewSummaryAPI } from "../../services/api-service";
 import { useCart } from "../context/cart-context.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import BookForm from "./BookForm";
 import BookCard from "./BookCard";
 import BookDetailDrawer from "./BookDetailDrawer";
@@ -15,6 +15,7 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
     const { user } = useContext(AuthContext);
     const { addToCart } = useCart();
     const navigate = useNavigate();
+    const location = useLocation();
     const isAdmin = user?.role === 'ROLE_ADMIN';
 
     // State management
@@ -39,6 +40,34 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
         loadBestSellers();
     }, [current, pageSize, searchParams, isSearching, refreshTrigger]);
 
+    // Force refresh khi user thay đổi (đăng nhập/đăng xuất)
+    useEffect(() => {
+        console.log('User changed, refreshing data...', user?.id);
+        loadBooks();
+        loadNewBooks();
+        loadBestSellers();
+    }, [user?.id]);
+
+    // Force refresh khi component mount
+    useEffect(() => {
+        console.log('BookList mounted, loading fresh data...');
+        loadBooks();
+        loadNewBooks();
+        loadBestSellers();
+    }, []);
+
+    // Force refresh ngay khi component mount lần đầu (chỉ chạy 1 lần)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            console.log('Initial load completed, forcing refresh...');
+            loadBooks();
+            loadNewBooks();
+            loadBestSellers();
+        }, 100); // Delay 100ms để đảm bảo component đã mount hoàn toàn
+
+        return () => clearTimeout(timer);
+    }, []);
+
     useEffect(() => {
         const handleResize = () => {
             let newPageSize = 4; // mặc định
@@ -55,6 +84,39 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const fetchBooksWithRating = async (books) => {
+        try {
+            const booksWithRating = await Promise.all(
+                books.map(async (book) => {
+                    try {
+                        const ratingResponse = await getBookReviewSummaryAPI(book.id);
+                        if (ratingResponse?.success && ratingResponse?.data) {
+                            return {
+                                ...book,
+                                averageRating: ratingResponse.data.averageRating || 0,
+                                reviewCount: ratingResponse.data.totalReviews || 0
+                            };
+                        }
+                        return {
+                            ...book,
+                            averageRating: 0,
+                            reviewCount: 0
+                        };
+                    } catch (error) {
+                        return {
+                            ...book,
+                            averageRating: 0,
+                            reviewCount: 0
+                        };
+                    }
+                })
+            );
+            return booksWithRating;
+        } catch (error) {
+            return books.map(book => ({ ...book, averageRating: 0, reviewCount: 0 }));
+        }
+    };
+
     const loadBooks = async () => {
         setLoading(true);
         try {
@@ -62,8 +124,9 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
             if (isSearching && Object.keys(searchParams).length > 0) {
                 response = await searchBooksAPI({ ...searchParams, page: current - 1, size: pageSize });
                 if (response?.success && response?.data) {
-                    const { content, page, size, totalElements } = response.data;
-                    setBooks(content || []);
+                    const { content, totalElements } = response.data;
+                    const booksWithRating = await fetchBooksWithRating(content || []);
+                    setBooks(booksWithRating);
                     setTotal(totalElements || 0);
                 } else {
                     setBooks([]);
@@ -72,8 +135,9 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
             } else {
                 response = await getAllBookAPI(current - 1, pageSize);
                 if (response?.success && response?.data) {
-                    const { content, page, size, totalElements } = response.data;
-                    setBooks(content || []);
+                    const { content, totalElements } = response.data;
+                    const booksWithRating = await fetchBooksWithRating(content || []);
+                    setBooks(booksWithRating);
                     setTotal(totalElements || 0);
                 } else {
                     setBooks([]);
@@ -91,16 +155,13 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
     const loadNewBooks = async () => {
         try {
             const response = await getNewBooksAPI();
-            console.log('New Books API Response:', response);
             if (response?.success && Array.isArray(response.data)) {
-                console.log('Setting new books:', response.data);
-                setNewBooks(response.data);
+                const booksWithRating = await fetchBooksWithRating(response.data);
+                setNewBooks(booksWithRating);
             } else {
-                console.log('No new books data or invalid format');
                 setNewBooks([]);
             }
         } catch (error) {
-            console.error('Error loading new books:', error);
             setNewBooks([]);
         }
     };
@@ -108,16 +169,13 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
     const loadBestSellers = async () => {
         try {
             const response = await getBestSellersAPI();
-            console.log('Best Sellers API Response:', response);
             if (response?.success && Array.isArray(response.data)) {
-                console.log('Setting best sellers:', response.data);
-                setBestSellers(response.data);
+                const booksWithRating = await fetchBooksWithRating(response.data);
+                setBestSellers(booksWithRating);
             } else {
-                console.log('No best sellers data or invalid format');
                 setBestSellers([]);
             }
         } catch (error) {
-            console.error('Error loading best sellers:', error);
             setBestSellers([]);
         }
     };
@@ -191,15 +249,81 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
         setShowDrawer(true);
     };
 
+    const handleBookUpdate = () => {
+        // Refresh dữ liệu sách sau khi có đánh giá mới
+        loadBooks();
+        loadNewBooks();
+        loadBestSellers();
+    };
+
+    const updateBookRating = async (bookId) => {
+        try {
+            const ratingResponse = await getBookReviewSummaryAPI(bookId);
+            console.log(`Updating rating for book ${bookId}:`, ratingResponse);
+            if (ratingResponse?.success && ratingResponse?.data) {
+                // Cập nhật rating cho sách cụ thể trong danh sách
+                setBooks(prevBooks =>
+                    prevBooks.map(book =>
+                        book.id === bookId
+                            ? {
+                                ...book,
+                                averageRating: ratingResponse.data.averageRating || 0,
+                                reviewCount: ratingResponse.data.totalReviews || 0
+                            }
+                            : book
+                    )
+                );
+
+                // Cập nhật rating cho sách trong newBooks
+                setNewBooks(prevBooks =>
+                    prevBooks.map(book =>
+                        book.id === bookId
+                            ? {
+                                ...book,
+                                averageRating: ratingResponse.data.averageRating || 0,
+                                reviewCount: ratingResponse.data.totalReviews || 0
+                            }
+                            : book
+                    )
+                );
+
+                // Cập nhật rating cho sách trong bestSellers
+                setBestSellers(prevBooks =>
+                    prevBooks.map(book =>
+                        book.id === bookId
+                            ? {
+                                ...book,
+                                averageRating: ratingResponse.data.averageRating || 0,
+                                reviewCount: ratingResponse.data.totalReviews || 0
+                            }
+                            : book
+                    )
+                );
+            }
+        } catch (error) {
+            console.error('Error updating book rating:', error);
+        }
+    };
+
     const handleAddToCart = async (book, e) => {
         if (!user?.id) {
+            message.destroy();
             message.warning("Vui lòng đăng nhập để thêm vào giỏ hàng");
             navigate('/login');
             return;
         }
         setActionLoading(prev => ({ ...prev, [book.id]: true }));
         try {
-            await addToCart(book.id, 1);
+            const response = await addToCart(book.id, 1);
+            message.destroy();
+            if (response && response.success === true) {
+                message.success(response && response.message ? response.message : 'Đã thêm vào giỏ hàng!');
+            } else {dasnh 
+                message.error(response && response.message ? response.message : 'Thêm vào giỏ hàng thất bại!');
+            }
+        } catch (error) {
+            message.destroy();
+            message.error(error && error.message ? error.message : 'Thêm vào giỏ hàng thất bại!');
         } finally {
             setActionLoading(prev => ({ ...prev, [book.id]: false }));
         }
@@ -207,14 +331,33 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
 
     const handleBuyNow = async (book, e) => {
         if (!user?.id) {
+            message.destroy();
             message.warning("Vui lòng đăng nhập để mua hàng");
             navigate('/login');
             return;
         }
         setActionLoading(prev => ({ ...prev, [book.id]: true }));
         try {
-            await addToCart(book.id, 1);
-            navigate('/cart');
+            // Tạo dữ liệu sách cho checkout
+            const bookForCheckout = {
+                bookId: book.id,
+                bookTitle: book.mainText,
+                bookImage: book.image,
+                price: book.price,
+                quantity: 1,
+                totalPrice: book.price
+            };
+
+            // Chuyển đến trang checkout với sách này
+            navigate('/checkout', {
+                state: {
+                    cart: [bookForCheckout],
+                    isBuyNow: true // Flag để biết đây là mua ngay
+                }
+            });
+        } catch (error) {
+            message.destroy();
+            message.error('Không thể thực hiện mua ngay');
         } finally {
             setActionLoading(prev => ({ ...prev, [book.id]: false }));
         }
@@ -341,6 +484,12 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
                     setTimeout(() => {
                         handleDelete(book);
                     }, 300);
+                }}
+                onBookUpdate={() => {
+                    if (selectedBook?.id) {
+                        updateBookRating(selectedBook.id);
+                    }
+                    handleBookUpdate();
                 }}
             />
         </div>
