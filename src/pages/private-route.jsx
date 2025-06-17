@@ -3,7 +3,7 @@ import { AuthContext } from "../components/context/auth-context";
 import { Navigate } from "react-router-dom";
 import { Spin } from "antd";
 
-const PrivateRoute = ({ children }) => {
+const PrivateRoute = ({ children, requiredRole }) => {
     const { user, isLoading } = useContext(AuthContext);
 
     if (isLoading) {
@@ -19,10 +19,15 @@ const PrivateRoute = ({ children }) => {
         );
     }
 
-    if (user && user.id) {
-        return children;
+    if (!user || !user.id) {
+        return <Navigate to="/login" replace />;
     }
-    return <Navigate to="/login" replace />;
+
+    if (requiredRole && user.role !== requiredRole) {
+        return <Navigate to="/" replace />;
+    }
+
+    return children;
 }
 
 export default PrivateRoute;

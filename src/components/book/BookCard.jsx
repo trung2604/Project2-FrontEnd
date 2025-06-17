@@ -232,16 +232,9 @@ const BookCard = ({
                 </div>
 
                 {/* Price and Stock Info */}
-                <div style={{
-                    marginTop: 'auto',
-                    paddingTop: '12px',
-                    borderTop: '1px solid #f0f0f0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4
-                }}>
+                <div className="book-price-stock-row">
                     {/* Price */}
-                    <div style={{ display: 'flex', alignItems: 'center', minHeight: 24 }}>
+                    <div className="book-price-row">
                         <Text strong style={{ minWidth: 60, color: '#444', fontSize: 13 }}>Giá:</Text>
                         <Text strong style={{ fontSize: '15px', color: '#f5222d', fontWeight: 700, marginLeft: 6 }}>
                             {book.price ? book.price.toLocaleString() + 'đ' : 'Chưa có giá'}
@@ -249,7 +242,7 @@ const BookCard = ({
                     </div>
 
                     {/* Stock */}
-                    <div style={{ display: 'flex', alignItems: 'center', minHeight: 24 }}>
+                    <div className="book-stock-row">
                         <Text strong style={{ minWidth: 60, color: '#444', fontSize: 13 }}>Số lượng:</Text>
                         <Text style={{ color: book.quantity > 0 ? '#52c41a' : '#f5222d', fontSize: '12px', fontWeight: 500, marginLeft: 6 }}>
                             {typeof book.quantity === 'number'
@@ -259,7 +252,7 @@ const BookCard = ({
                     </div>
 
                     {/* Sold */}
-                    <div style={{ display: 'flex', alignItems: 'center', minHeight: 24 }}>
+                    <div className="book-sold-row">
                         <Text strong style={{ minWidth: 60, color: '#444', fontSize: 13 }}>Đã bán:</Text>
                         <Text type="secondary" style={{ fontSize: '12px', marginLeft: 6 }}>
                             {typeof book.sold === 'number' ? book.sold : 0}

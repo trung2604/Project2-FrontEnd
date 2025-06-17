@@ -16,7 +16,8 @@ const BooksPage = () => {
     }, [current, pageSize, refreshTrigger]);
 
     const loadBooks = async () => {
-        const response = await getAllBookAPI(current, pageSize);
+        const page = Math.max(0, current - 1); // Ensure page is never negative
+        const response = await getAllBookAPI(page, pageSize);
         if (response?.data) {
             setData(response.data.content || []);
             setTotal(response.data.totalElements || 0);

@@ -82,9 +82,9 @@ const logoutAPI = () => {
     return axios.post(URL_BACKEND);
 }
 
-const getAllBookAPI = (current, pageSize) => {
-    const URL_BACKEND = `/api/bookStore/book/paged?current=${current}&pageSize=${pageSize}`;
-    return axios.get(URL_BACKEND);
+const getAllBookAPI = (page, size) => {
+    const URL_BACKEND = '/api/bookStore/book/paged';
+    return axios.get(URL_BACKEND, { params: { page, size } });
 }
 
 const addBookAPI = async (book) => {
@@ -324,6 +324,49 @@ const getLatestBooksAPI = (limit = 3) => {
 export const getNewBooksAPI = () => axios.get('/api/bookStore/book/latest', { params: { limit: 5 } });
 export const getBestSellersAPI = () => axios.get('/api/bookStore/book/top-selling', { params: { limit: 5 } });
 
+// Report APIs
+export const getRevenueReportAPI = (startDate, endDate) => {
+    return axios.get('/api/bookStore/reports/revenue', {
+        params: {
+            startDate: startDate.format('YYYY-MM-DDTHH:mm:ss'),
+            endDate: endDate.format('YYYY-MM-DDTHH:mm:ss')
+        }
+    });
+};
+
+export const getTopSellingBooksReportAPI = (startDate, endDate, limit = 10) => {
+    return axios.get('/api/bookStore/reports/top-selling-books', {
+        params: {
+            startDate: startDate.format('YYYY-MM-DDTHH:mm:ss'),
+            endDate: endDate.format('YYYY-MM-DDTHH:mm:ss'),
+            limit
+        }
+    });
+};
+
+export const getInventoryReportAPI = () => {
+    return axios.get('/api/bookStore/reports/inventory');
+};
+
+export const getCategoryReportAPI = (startDate, endDate) => {
+    return axios.get('/api/bookStore/reports/categories', {
+        params: {
+            startDate: startDate.format('YYYY-MM-DDTHH:mm:ss'),
+            endDate: endDate.format('YYYY-MM-DDTHH:mm:ss')
+        }
+    });
+};
+
+export const getOrderStatusReportAPI = (startDate, endDate) => {
+    return axios.get('/api/bookStore/reports/order-status', {
+        params: {
+            startDate: startDate.format('YYYY-MM-DDTHH:mm:ss'),
+            endDate: endDate.format('YYYY-MM-DDTHH:mm:ss')
+        }
+    });
+};
+
+// Export all functions that are not directly exported
 export {
     createUserAPI,
     addUserAPI,
@@ -357,4 +400,41 @@ export {
     searchBooksByKeywordAPI,
     getTopSellingBooksAPI,
     getLatestBooksAPI
+};
+
+// Export all constants
+export const ORDER_STATUS = {
+    PENDING: 'PENDING',
+    CONFIRMED: 'CONFIRMED',
+    SHIPPING: 'SHIPPING',
+    DELIVERED: 'DELIVERED',
+    CANCELLED: 'CANCELLED',
+    REFUNDED: 'REFUNDED'
+};
+
+export const ORDER_STATUS_LABELS = {
+    [ORDER_STATUS.PENDING]: 'Chờ xác nhận',
+    [ORDER_STATUS.CONFIRMED]: 'Đã xác nhận',
+    [ORDER_STATUS.SHIPPING]: 'Đang giao hàng',
+    [ORDER_STATUS.DELIVERED]: 'Đã giao hàng',
+    [ORDER_STATUS.CANCELLED]: 'Đã hủy',
+    [ORDER_STATUS.REFUNDED]: 'Đã hoàn tiền'
+};
+
+export const STOCK_STATUS = {
+    LOW: 'LOW',
+    MEDIUM: 'MEDIUM',
+    HIGH: 'HIGH'
+};
+
+export const STOCK_STATUS_LABELS = {
+    [STOCK_STATUS.LOW]: 'Tồn kho thấp (≤ 10)',
+    [STOCK_STATUS.MEDIUM]: 'Tồn kho trung bình (11-50)',
+    [STOCK_STATUS.HIGH]: 'Tồn kho cao (> 50)'
+};
+
+export const STOCK_STATUS_COLORS = {
+    [STOCK_STATUS.LOW]: 'error',
+    [STOCK_STATUS.MEDIUM]: 'warning',
+    [STOCK_STATUS.HIGH]: 'success'
 };

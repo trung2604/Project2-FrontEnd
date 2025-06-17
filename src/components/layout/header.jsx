@@ -11,7 +11,8 @@ import {
   UserAddOutlined,
   ExclamationCircleOutlined,
   AppstoreOutlined,
-  ShoppingOutlined
+  ShoppingOutlined,
+  BarChartOutlined
 } from '@ant-design/icons';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import './Header.css';
@@ -123,37 +124,47 @@ const Header = () => {
     ];
 
     if (user?.role === 'ROLE_ADMIN') {
-      items.push({
-        key: 'categories',
-        icon: <AppstoreOutlined />,
-        label: 'Quản lý danh mục',
-        onClick: () => navigate('/categories')
-      });
-      items.push({
-        key: 'books',
-        icon: <BookOutlined />,
-        label: 'Quản lý sách',
-        onClick: () => navigate('/books')
-      });
-      items.push({
-        key: 'users',
-        icon: <UserOutlined />,
-        label: 'Quản lý người dùng',
-        onClick: () => navigate('/users')
-      });
+      items.push(
+        {
+          key: 'categories',
+          icon: <AppstoreOutlined />,
+          label: 'Quản lý danh mục',
+          onClick: () => navigate('/categories')
+        },
+        {
+          key: 'books',
+          icon: <BookOutlined />,
+          label: 'Quản lý sách',
+          onClick: () => navigate('/books')
+        },
+        {
+          key: 'users',
+          icon: <UserOutlined />,
+          label: 'Quản lý người dùng',
+          onClick: () => navigate('/users')
+        },
+        {
+          key: 'reports',
+          icon: <BarChartOutlined />,
+          label: 'Báo cáo thống kê',
+          onClick: () => navigate('/reports')
+        }
+      );
     } else {
-      items.push({
-        key: 'categories',
-        icon: <AppstoreOutlined />,
-        label: 'Danh mục',
-        onClick: () => navigate('/categories')
-      });
-      items.push({
-        key: 'books',
-        icon: <BookOutlined />,
-        label: 'Sách',
-        onClick: () => navigate('/books')
-      });
+      items.push(
+        {
+          key: 'categories',
+          icon: <AppstoreOutlined />,
+          label: 'Danh mục',
+          onClick: () => navigate('/categories')
+        },
+        {
+          key: 'books',
+          icon: <BookOutlined />,
+          label: 'Sách',
+          onClick: () => navigate('/books')
+        }
+      );
     }
 
     if (user?.id) {
@@ -212,6 +223,7 @@ const Header = () => {
     if (location.pathname.startsWith('/books')) return 'books';
     if (location.pathname.startsWith('/categories')) return 'categories';
     if (location.pathname.startsWith('/orders')) return 'orders';
+    if (location.pathname.startsWith('/reports')) return 'reports';
     if (location.pathname.startsWith('/login')) return 'login';
     if (location.pathname.startsWith('/register')) return 'register';
     return '';

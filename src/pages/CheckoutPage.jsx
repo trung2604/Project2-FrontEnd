@@ -38,7 +38,7 @@ const CheckoutPage = () => {
                 }
             } catch (error) {
                 console.error('Error checking auth:', error);
-                if (error.response?.status === 401) {
+                if (error.response?.success === false) {
                     message.error("Vui lòng đăng nhập để tiếp tục!");
                     navigate("/login", { state: { from: "/checkout" } });
                 }

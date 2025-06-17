@@ -9,6 +9,7 @@ import BookCard from "./BookCard";
 import BookDetailDrawer from "./BookDetailDrawer";
 import BookSearchForm from "./BookSearchForm";
 import { AuthContext } from "../context/auth-context";
+import '../../styles/book-card.css';
 
 const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
     const { user } = useContext(AuthContext);
@@ -38,6 +39,22 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
         loadBestSellers();
     }, [current, pageSize, searchParams, isSearching, refreshTrigger]);
 
+    useEffect(() => {
+        const handleResize = () => {
+            let newPageSize = 4; // mặc định
+            const width = window.innerWidth;
+            if (width >= 1600) newPageSize = 12;
+            else if (width >= 1200) newPageSize = 8;
+            else if (width >= 900) newPageSize = 6;
+            else if (width >= 600) newPageSize = 4;
+            else newPageSize = 2;
+            setPageSize(newPageSize);
+        };
+        window.addEventListener('resize', handleResize);
+        handleResize();
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const loadBooks = async () => {
         setLoading(true);
         try {
@@ -45,11 +62,9 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
             if (isSearching && Object.keys(searchParams).length > 0) {
                 response = await searchBooksAPI({ ...searchParams, page: current - 1, size: pageSize });
                 if (response?.success && response?.data) {
-                    const { content, totalElements, number, size } = response.data;
+                    const { content, page, size, totalElements } = response.data;
                     setBooks(content || []);
                     setTotal(totalElements || 0);
-                    setCurrent((number || 0) + 1);
-                    setPageSize(size || 10);
                 } else {
                     setBooks([]);
                     setTotal(0);
@@ -57,11 +72,9 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
             } else {
                 response = await getAllBookAPI(current - 1, pageSize);
                 if (response?.success && response?.data) {
-                    const { content, totalElements, number, size } = response.data;
+                    const { content, page, size, totalElements } = response.data;
                     setBooks(content || []);
                     setTotal(totalElements || 0);
-                    setCurrent((number || 0) + 1);
-                    setPageSize(size || 10);
                 } else {
                     setBooks([]);
                     setTotal(0);
@@ -121,8 +134,10 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
     };
 
     const handlePageChange = (page, size) => {
-        setCurrent(page);
-        setPageSize(size);
+        if (page && !isNaN(page)) {
+            setCurrent(page);
+            setPageSize(size);
+        }
     };
 
     const handleReset = () => {
@@ -243,23 +258,20 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
 
             {/* Main Book List */}
             <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <Spin spinning={loading}>
-                    <Row gutter={[32, 32]} justify="start">
-                        {Array.isArray(books) && books.length > 0 ? (
-                            books.map((book) => {
-                                return (
+                <Spin spinning={loading} tip="Đang tải dữ liệu..." size="large">
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Row gutter={[32, 32]} justify="center" style={{ width: '100%' }}>
+                            {Array.isArray(books) && books.length > 0 ? (
+                                books.map((book) => (
                                     <Col
                                         xs={24}
                                         sm={12}
-                                        md={8}
-                                        lg={6}
+                                        md={12}
+                                        lg={8}
                                         xl={6}
-                                        xxl={4}
+                                        xxl={6}
                                         key={book.id}
-                                        style={{
-                                            display: 'flex',
-                                            justifyContent: 'center'
-                                        }}
+                                        style={{ display: 'flex', justifyContent: 'center' }}
                                     >
                                         <BookCard
                                             book={{
@@ -274,37 +286,32 @@ const BookList = ({ setRefreshTrigger, refreshTrigger }) => {
                                             onBuyNow={handleBuyNow}
                                             onClick={handleCardClick}
                                             loading={actionLoading[book.id]}
-                                            style={{ width: '100%', maxWidth: '280px', transition: 'all 0.3s ease' }}
                                         />
                                     </Col>
-                                );
-                            })
-                        ) : (
-                            <Col span={24}>
-                                <Empty description="Không tìm thấy sách nào" />
-                            </Col>
+                                ))
+                            ) : (
+                                <Col span={24}>
+                                    <Empty description="Không tìm thấy sách nào" />
+                                </Col>
+                            )}
+                        </Row>
+                        {/* Pagination */}
+                        {Array.isArray(books) && books.length > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: 32 }}>
+                                <Pagination
+                                    current={current}
+                                    pageSize={pageSize}
+                                    total={total}
+                                    onChange={handlePageChange}
+                                    showSizeChanger
+                                    showQuickJumper
+                                    showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} sách`}
+                                    pageSizeOptions={['5', '10', '20', '50']}
+                                    disabled={loading}
+                                />
+                            </div>
                         )}
-                    </Row>
-
-                    {/* Pagination */}
-                    {Array.isArray(books) && books.length > 0 && (
-                        <div style={{
-                            marginTop: '32px',
-                            display: 'flex',
-                            justifyContent: 'center'
-                        }}>
-                            <Pagination
-                                current={current}
-                                pageSize={pageSize}
-                                total={total}
-                                onChange={handlePageChange}
-                                showSizeChanger
-                                showQuickJumper
-                                showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} sách`}
-                                pageSizeOptions={['5', '10', '20', '50']}
-                            />
-                        </div>
-                    )}
+                    </div>
                 </Spin>
             </div>
 

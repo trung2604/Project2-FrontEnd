@@ -24,6 +24,7 @@ import OrderPage from './pages/OrderPage';
 import CategoryBooksPage from './pages/CategoryBooksPage';
 import BooksPage from './pages/BooksPage';
 import ShipperOrdersPage from './pages/ShipperOrdersPage';
+import ReportsPage from './pages/ReportsPage';
 
 // Wrap App with CartProvider
 const AppWithCart = () => (
@@ -115,6 +116,14 @@ const Router = createBrowserRouter([
         element: (
           <PrivateRoute requiredRole="ROLE_SHIPPER">
             <ShipperOrdersPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: '/reports',
+        element: (
+          <PrivateRoute requiredRole="ROLE_ADMIN">
+            <ReportsPage />
           </PrivateRoute>
         ),
       },
