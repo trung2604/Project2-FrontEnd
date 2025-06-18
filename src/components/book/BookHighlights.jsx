@@ -6,6 +6,7 @@ import BookForm from './BookForm';
 import { AuthContext } from '../../components/context/auth-context';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../components/context/cart-context';
+import BookDetailDrawer from './BookDetailDrawer';
 
 const { Title } = Typography;
 
@@ -20,6 +21,8 @@ const BookHighlights = () => {
     const { addToCart } = useCart();
     const isAdmin = user?.role === 'ROLE_ADMIN';
     const navigate = useNavigate();
+    const [showDrawer, setShowDrawer] = useState(false);
+    const [selectedBook, setSelectedBook] = useState(null);
 
     useEffect(() => {
         const fetchBooks = async () => {
@@ -165,6 +168,11 @@ const BookHighlights = () => {
         }
     };
 
+    const handleCardClick = (book) => {
+        setSelectedBook(book);
+        setShowDrawer(true);
+    };
+
     const renderBookSection = (title, books, isLoading, type) => {
         return (
             <Card style={{ marginBottom: 24 }}>
@@ -187,6 +195,7 @@ const BookHighlights = () => {
                                         onBuyNow={!isAdmin ? handleBuyNow : undefined}
                                         loading={actionLoading[book.id]}
                                         style={{ width: '100%', maxWidth: '280px', transition: 'all 0.3s ease' }}
+                                        onClick={handleCardClick}
                                     />
                                 </Col>
                             ))}
@@ -219,6 +228,15 @@ const BookHighlights = () => {
                 bookData={bookData}
                 setBookData={setBookData}
                 onSuccess={loadBooks}
+            />
+            <BookDetailDrawer
+                open={showDrawer}
+                onClose={() => setShowDrawer(false)}
+                book={selectedBook}
+                isAdmin={isAdmin}
+                onEdit={isAdmin ? handleEdit : undefined}
+                onDelete={isAdmin ? handleDelete : undefined}
+                onBookUpdate={loadBooks}
             />
         </div>
     );

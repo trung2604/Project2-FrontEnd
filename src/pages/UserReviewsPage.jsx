@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, List, Button, Rate, Tag, Popconfirm, message, Pagination, Empty } from 'antd';
+import { Card, List, Button, Rate, Tag, Popconfirm, message, Pagination, Empty, Modal, Select } from 'antd';
 import { EditOutlined, DeleteOutlined, CheckCircleOutlined, BookOutlined } from '@ant-design/icons';
-import { getUserReviewsAPI, deleteReviewAPI } from '../services/api-service';
+import { getUserReviewsAPI, deleteReviewAPI, getUserOrdersAPI } from '../services/api-service';
 import { formatDate } from '../utils/format';
 import ReviewForm from '../components/review/ReviewForm';
+import { useContext } from 'react';
+import { AuthContext } from '../components/context/auth-context';
+import { useNavigate } from 'react-router-dom';
 
 const UserReviewsPage = () => {
+    const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -15,6 +20,15 @@ const UserReviewsPage = () => {
     });
     const [editingReview, setEditingReview] = useState(null);
     const [showReviewForm, setShowReviewForm] = useState(false);
+    const [selectBookModalOpen, setSelectBookModalOpen] = useState(false);
+    const [booksToReview, setBooksToReview] = useState([]);
+    const [selectedBook, setSelectedBook] = useState(null);
+
+    useEffect(() => {
+        if (!user?.id || user.role !== 'ROLE_USER') {
+            navigate('/login'); // hoặc navigate('/') nếu muốn về trang chủ
+        }
+    }, [user, navigate]);
 
     useEffect(() => {
         fetchUserReviews();
@@ -69,6 +83,46 @@ const UserReviewsPage = () => {
 
     const handleCancelEdit = () => {
         setShowReviewForm(false);
+        setEditingReview(null);
+    };
+
+    const fetchBooksToReview = async () => {
+        try {
+            const ordersRes = await getUserOrdersAPI({ page: 0, size: 100 });
+            if (ordersRes.success && ordersRes.data) {
+                const orders = ordersRes.data.result || [];
+                let deliveredBooks = [];
+                orders.forEach(order => {
+                    if (order.status === 'DELIVERED') {
+                        (order.items || []).forEach(item => {
+                            deliveredBooks.push({
+                                bookId: item.bookId,
+                                bookName: item.bookTitle || item.bookName,
+                                bookImage: item.bookImage || (item.book && item.book.image),
+                                orderId: order.id
+                            });
+                        });
+                    }
+                });
+                const reviewedBookIds = reviews.map(r => String(r.bookId));
+                const booksCanReview = deliveredBooks.filter(b => !reviewedBookIds.includes(String(b.bookId)));
+                setBooksToReview(booksCanReview);
+            }
+        } catch (error) {
+            setBooksToReview([]);
+        }
+    };
+
+    const handleOpenSelectBook = async () => {
+        await fetchBooksToReview();
+        setSelectBookModalOpen(true);
+    };
+
+    const handleSelectBook = (bookId) => {
+        const book = booksToReview.find(b => b.bookId === bookId);
+        setSelectedBook(book);
+        setSelectBookModalOpen(false);
+        setShowReviewForm(true);
         setEditingReview(null);
     };
 
@@ -132,20 +186,45 @@ const UserReviewsPage = () => {
                 extra={
                     <Button
                         type="primary"
-                        onClick={() => setShowReviewForm(true)}
+                        onClick={handleOpenSelectBook}
                     >
                         Viết đánh giá mới
                     </Button>
                 }
             >
+                <Modal
+                    title="Chọn sách để đánh giá"
+                    open={selectBookModalOpen}
+                    onCancel={() => setSelectBookModalOpen(false)}
+                    footer={null}
+                >
+                    <Select
+                        showSearch
+                        placeholder="Chọn sách..."
+                        style={{ width: '100%' }}
+                        optionFilterProp="children"
+                        onChange={handleSelectBook}
+                    >
+                        {booksToReview.map(book => (
+                            <Select.Option key={book.bookId} value={book.bookId}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {book.bookImage && <img src={book.bookImage} alt={book.bookName} style={{ width: 32, height: 40, objectFit: 'cover', borderRadius: 3 }} />}
+                                    <span>{book.bookName}</span>
+                                </span>
+                            </Select.Option>
+                        ))}
+                    </Select>
+                    {booksToReview.length === 0 && <div style={{ marginTop: 16, color: '#888' }}>Bạn không có sách nào để đánh giá.</div>}
+                </Modal>
                 {showReviewForm && (
                     <div className="mb-6">
                         <ReviewForm
-                            bookId={editingReview?.bookId}
-                            orderId={editingReview?.orderId}
-                            reviewId={editingReview?.id}
-                            bookName={editingReview?.bookName}
-                            onSuccess={handleReviewSuccess}
+                            bookId={editingReview ? editingReview.bookId : selectedBook?.bookId}
+                            orderId={editingReview ? editingReview.orderId : selectedBook?.orderId}
+                            bookName={editingReview ? editingReview.bookName : selectedBook?.bookName}
+                            bookImage={editingReview ? editingReview.bookImage : selectedBook?.bookImage}
+                            existingReview={editingReview}
+                            onSubmit={handleReviewSuccess}
                             onCancel={handleCancelEdit}
                         />
                     </div>

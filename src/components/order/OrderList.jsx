@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Table, Button, Space, Modal, message, Tag, Tooltip, Select, Popconfirm, Rate, Input, Form } from 'antd';
 import { EyeOutlined, DeleteOutlined, StarOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/auth-context';
@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUserOrdersAPI, getAllOrdersAPI, updateOrderStatusAPI, cancelOrderAPI, confirmOrderAPI, createReviewAPI, getUserReviewForBookAPI } from '../../services/api-service';
 
 const { Option } = Select;
-const { TextArea } = Input;
+const { TextArea, Search } = Input;
 
 const OrderList = () => {
     const { user } = useContext(AuthContext);
@@ -25,11 +25,25 @@ const OrderList = () => {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [reviewForm] = Form.useForm();
     const [reviewLoading, setReviewLoading] = useState(false);
+    const [searchInput, setSearchInput] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
+    const [sortField, setSortField] = useState("createdAt");
+    const [sortOrder, setSortOrder] = useState("desc");
+    const debounceTimeout = useRef();
+
+    useEffect(() => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = setTimeout(() => {
+            setSearchTerm(searchInput);
+        }, 500);
+        return () => clearTimeout(debounceTimeout.current);
+    }, [searchInput]);
 
     useEffect(() => {
         loadOrders();
         // eslint-disable-next-line
-    }, [current, pageSize, refreshTrigger]);
+    }, [current, pageSize, refreshTrigger, searchTerm, statusFilter, sortField, sortOrder]);
 
     const loadOrders = async () => {
         setLoading(true);
@@ -37,7 +51,9 @@ const OrderList = () => {
             const params = {
                 page: current - 1,
                 size: pageSize,
-                sort: 'createdAt,desc',
+                sort: `${sortField},${sortOrder}`,
+                ...(isAdmin && searchTerm ? { search: searchTerm } : {}),
+                ...(isAdmin && statusFilter ? { status: statusFilter } : {}),
             };
             const res = isAdmin
                 ? await getAllOrdersAPI(params)
@@ -97,6 +113,7 @@ const OrderList = () => {
             if (+pagination.current !== +current) setCurrent(+pagination.current);
             if (+pagination.pageSize !== +pageSize) setPageSize(+pagination.pageSize);
         }
+        // reset sort, filter khi chuyển trang nếu muốn
     };
 
     const handleViewDetail = (order) => {
@@ -346,6 +363,48 @@ const OrderList = () => {
 
     return (
         <div style={{ padding: '24px' }}>
+            {isAdmin && (
+                <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
+                    <Search
+                        placeholder="Tìm kiếm tên, email, sđt, địa chỉ..."
+                        allowClear
+                        value={searchInput}
+                        onChange={e => setSearchInput(e.target.value)}
+                        onSearch={value => setSearchInput(value)}
+                        style={{ width: 260 }}
+                    />
+                    <Select
+                        placeholder="Lọc trạng thái"
+                        allowClear
+                        value={statusFilter || undefined}
+                        onChange={value => setStatusFilter(value || "")}
+                        style={{ width: 180 }}
+                    >
+                        <Option value="">Tất cả trạng thái</Option>
+                        <Option value="PENDING">Chờ xác nhận</Option>
+                        <Option value="CONFIRMED">Đã xác nhận</Option>
+                        <Option value="SHIPPING">Đang giao hàng</Option>
+                        <Option value="DELIVERED">Đã giao hàng</Option>
+                        <Option value="CANCELLED">Đã hủy</Option>
+                    </Select>
+                    <Select
+                        value={sortField + "," + sortOrder}
+                        onChange={val => {
+                            const [field, order] = val.split(",");
+                            setSortField(field);
+                            setSortOrder(order);
+                        }}
+                        style={{ width: 220 }}
+                    >
+                        <Option value="createdAt,desc">Ngày tạo mới nhất</Option>
+                        <Option value="createdAt,asc">Ngày tạo cũ nhất</Option>
+                        <Option value="totalAmount,desc">Tổng tiền cao nhất</Option>
+                        <Option value="totalAmount,asc">Tổng tiền thấp nhất</Option>
+                        <Option value="fullName,asc">Tên khách hàng A-Z</Option>
+                        <Option value="fullName,desc">Tên khách hàng Z-A</Option>
+                    </Select>
+                </div>
+            )}
             <Table
                 columns={columns}
                 dataSource={orders}

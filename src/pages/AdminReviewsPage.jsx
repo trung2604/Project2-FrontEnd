@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Input, Button, Space, Avatar, Rate, Tag, Tooltip, Modal, message } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, Table, Input, Button, Space, Avatar, Rate, Tag, Tooltip, Modal, message, Select } from 'antd';
 import { UserOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { getAllReviewsAPI } from '../services/api-service';
+import { getAdminReviewsAPI } from '../services/api-service';
 import { formatDate } from '../utils/format';
 
 const { Search } = Input;
+const { Option } = Select;
 
 const AdminReviewsPage = () => {
     const [reviews, setReviews] = useState([]);
@@ -14,20 +15,33 @@ const AdminReviewsPage = () => {
         pageSize: 10,
         total: 0
     });
+    const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [rating, setRating] = useState('');
+    const debounceTimeout = useRef();
 
     useEffect(() => {
         fetchReviews();
-    }, [pagination.current, searchTerm]);
+    }, [pagination.current, searchTerm, rating]);
+
+    useEffect(() => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = setTimeout(() => {
+            setSearchTerm(searchInput);
+        }, 500);
+        return () => clearTimeout(debounceTimeout.current);
+    }, [searchInput]);
 
     const fetchReviews = async () => {
         setLoading(true);
         try {
-            const response = await getAllReviewsAPI(
-                pagination.current - 1,
-                pagination.pageSize,
-                searchTerm
-            );
+            const response = await getAdminReviewsAPI({
+                page: pagination.current - 1,
+                size: pagination.pageSize,
+                search: searchTerm || undefined,
+                rating: rating || undefined,
+                sort: 'createdAt,desc'
+            });
             if (response.success) {
                 setReviews(response.data.result);
                 setPagination({
@@ -51,8 +65,13 @@ const AdminReviewsPage = () => {
         });
     };
 
-    const handleSearch = (value) => {
-        setSearchTerm(value);
+    const handleSearchChange = (value) => {
+        setSearchInput(value);
+        setPagination({ ...pagination, current: 1 });
+    };
+
+    const handleRatingChange = (value) => {
+        setRating(value);
         setPagination({ ...pagination, current: 1 });
     };
 
@@ -159,11 +178,30 @@ const AdminReviewsPage = () => {
             <Card title="Quản lý đánh giá">
                 <div className="mb-4 flex flex-wrap gap-4">
                     <Search
-                        placeholder="Tìm kiếm theo tên sách, người đánh giá..."
+                        placeholder="Tìm kiếm nhận xét, tên người đánh giá hoặc tên sách..."
                         allowClear
-                        onSearch={handleSearch}
-                        style={{ width: 300 }}
+                        value={searchInput}
+                        onChange={e => handleSearchChange(e.target.value)}
+                        onSearch={handleSearchChange}
+                        style={{ width: 340 }}
                     />
+                    <Select
+                        placeholder="Số sao"
+                        allowClear
+                        value={rating || undefined}
+                        onChange={value => {
+                            setRating(value);
+                            setPagination({ ...pagination, current: 1 });
+                        }}
+                        style={{ width: 120 }}
+                    >
+                        <Option value="">Tất cả</Option>
+                        <Option value="5">5 sao</Option>
+                        <Option value="4">4 sao</Option>
+                        <Option value="3">3 sao</Option>
+                        <Option value="2">2 sao</Option>
+                        <Option value="1">1 sao</Option>
+                    </Select>
                 </div>
 
                 <Table

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Table, Button, Space, Modal, Form, Input, message, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { getAllCategoriesAPI, createCategoryAPI, updateCategoryAPI, deleteCategoryAPI, getBookCountByCategoryAPI } from '../../services/api-service';
+import { getAllCategoriesAPI, createCategoryAPI, updateCategoryAPI, deleteCategoryAPI, getBookCountByCategoryAPI, searchCategoriesAPI } from '../../services/api-service';
 import { AuthContext } from '../context/auth-context';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -21,12 +21,24 @@ const CategoryList = () => {
     const [total, setTotal] = useState(0);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [bookCounts, setBookCounts] = useState({});
+    const [searchInput, setSearchInput] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [sortOrder, setSortOrder] = useState(null); // 'asc' | 'desc' | null
+    const debounceTimeout = useRef();
 
     useEffect(() => {
         loadCategories();
         loadBookCounts();
         // eslint-disable-next-line
-    }, [current, pageSize, refreshTrigger]);
+    }, [current, pageSize, refreshTrigger, searchTerm, sortOrder]);
+
+    useEffect(() => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = setTimeout(() => {
+            setSearchTerm(searchInput);
+        }, 500);
+        return () => clearTimeout(debounceTimeout.current);
+    }, [searchInput]);
 
     const loadBookCounts = async () => {
         try {
@@ -47,21 +59,27 @@ const CategoryList = () => {
     const loadCategories = async () => {
         setLoading(true);
         try {
-            const res = await getAllCategoriesAPI({
-                page: current - 1,
-                size: pageSize
-            });
-            const apiData = res.data;
-            if (apiData) {
-                const categoriesData = Array.isArray(apiData.result)
-                    ? apiData.result
-                    : [];
-                setCategories(categoriesData);
-                setTotal(apiData.meta?.total || 0);
+            let categoriesData = [];
+            let totalCount = 0;
+            if (searchTerm) {
+                const res = await searchCategoriesAPI(searchTerm);
+                if (res.data) {
+                    categoriesData = Array.isArray(res.data) ? res.data : [];
+                    totalCount = categoriesData.length;
+                }
             } else {
-                setCategories([]);
-                setTotal(0);
+                const res = await getAllCategoriesAPI({
+                    page: current - 1,
+                    size: pageSize,
+                    sort: sortOrder ? `name,${sortOrder}` : undefined
+                });
+                if (res.data) {
+                    categoriesData = Array.isArray(res.data.result) ? res.data.result : [];
+                    totalCount = res.data.meta?.total || 0;
+                }
             }
+            setCategories(categoriesData);
+            setTotal(totalCount);
         } catch (error) {
             setCategories([]);
             setTotal(0);
@@ -71,10 +89,15 @@ const CategoryList = () => {
         }
     };
 
-    const handleChangePage = (pagination) => {
+    const handleChangePage = (pagination, filters, sorter) => {
         if (pagination && pagination.current && pagination.pageSize) {
             setCurrent(pagination.current);
             setPageSize(pagination.pageSize);
+        }
+        if (sorter && sorter.order) {
+            setSortOrder(sorter.order === 'ascend' ? 'asc' : 'desc');
+        } else {
+            setSortOrder(null);
         }
     };
 
@@ -147,6 +170,7 @@ const CategoryList = () => {
             dataIndex: 'name',
             key: 'name',
             sorter: true,
+            sortOrder: sortOrder ? (sortOrder === 'asc' ? 'ascend' : 'descend') : null,
             render: (text, record) => (
                 <Link to={`/categories/${record.id}`} state={{ category: record }}>
                     {text}
@@ -234,7 +258,9 @@ const CategoryList = () => {
                     placeholder="Tìm kiếm danh mục..."
                     allowClear
                     enterButton={<SearchOutlined />}
-                    disabled
+                    value={searchInput}
+                    onChange={e => setSearchInput(e.target.value)}
+                    onSearch={value => setSearchInput(value)}
                     style={{ width: 300 }}
                 />
                 {isAdmin && (

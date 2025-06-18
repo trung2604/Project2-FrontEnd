@@ -28,6 +28,7 @@ import ReportsPage from './pages/ReportsPage';
 import AdminReviewsPage from './pages/AdminReviewsPage';
 import UserReviewsPage from './pages/UserReviewsPage';
 import './components/review/review.css';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 
 const AppWithCart = () => (
   <CartProvider>
@@ -144,6 +145,10 @@ const Router = createBrowserRouter([
             <UserReviewsPage />
           </PrivateRoute>
         ),
+      },
+      {
+        path: '/payment/success',
+        element: <PaymentSuccessPage />,
       },
     ],
   },

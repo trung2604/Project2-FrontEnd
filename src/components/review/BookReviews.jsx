@@ -166,6 +166,7 @@ const BookReviews = ({ bookId, bookInfo, onReviewSubmitted }) => {
     };
 
     const renderUserReviewSection = () => {
+        const isUser = user?.role === "USER";
         if (!user?.id) {
             return (
                 <Card title="Viết đánh giá" className="mb-4">
@@ -267,23 +268,27 @@ const BookReviews = ({ bookId, bookInfo, onReviewSubmitted }) => {
         }
 
         // Nếu chưa mua sách
-        return (
-            <Card title="Viết đánh giá" className="mb-4">
-                <div className="text-center p-4">
-                    <ShoppingOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
-                    <p>Bạn cần mua sách này trước khi có thể đánh giá</p>
-                    <Button
-                        type="primary"
-                        danger
-                        icon={<ThunderboltOutlined style={{ fontSize: 16 }} />}
-                        loading={purchaseLoading}
-                        onClick={handleBuyNow}
-                    >
-                        Mua ngay
-                    </Button>
-                </div>
-            </Card>
-        );
+        if (isUser) {
+            return (
+                <Card title="Viết đánh giá" className="mb-4">
+                    <div className="text-center p-4">
+                        <ShoppingOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+                        <p>Bạn cần mua sách này trước khi có thể đánh giá</p>
+                        <Button
+                            type="primary"
+                            danger
+                            icon={<ThunderboltOutlined style={{ fontSize: 16 }} />}
+                            loading={purchaseLoading}
+                            onClick={handleBuyNow}
+                        >
+                            Mua ngay
+                        </Button>
+                    </div>
+                </Card>
+            );
+        }
+        // Nếu không phải user thường (admin/shipper) thì không hiển thị gì
+        return null;
     };
 
     const renderRatingDistribution = () => {

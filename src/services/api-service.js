@@ -495,3 +495,7 @@ export const STOCK_STATUS_COLORS = {
     [STOCK_STATUS.MEDIUM]: 'warning',
     [STOCK_STATUS.HIGH]: 'success'
 };
+
+export const createVNPayPaymentAPI = (data) => {
+    return axios.post('/api/bookStore/payments/vnpay', data);
+};
